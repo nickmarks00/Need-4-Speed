@@ -82,7 +82,7 @@ class Operate:
     # save raw images taken by the camera
     def save_image(self):
         f_ = os.path.join(self.folder, f'img_{self.image_id}.png')
-        if (self.timer - time.time()) > 1: #save images at least after 1 sec
+        if ((self.timer - time.time()) > 1 ) and (self.ekf_on == True): #save images at least after 1 sec
             image = self.pibot.get_image()
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             cv2.imwrite(f_, image)
