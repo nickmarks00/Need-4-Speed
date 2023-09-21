@@ -10,20 +10,10 @@ import time
 sys.path.insert(0, "{}/utility".format(os.getcwd()))
 from util.pibot import PenguinPi # access the robot
 import util.DatasetHandler as dh # save/load functions
-import util.measure as measure # measurements
+
+
 import pygame # python package for GUI
 import shutil # python package for file operations
-
-# import SLAM components you developed in M2
-sys.path.insert(0, "{}/slam".format(os.getcwd()))
-from slam.ekf import EKF
-from slam.robot import Robot
-import slam.aruco_detector as aruco
-
-# import CV components
-sys.path.insert(0,"{}/network/".format(os.getcwd()))
-sys.path.insert(0,"{}/network/scripts".format(os.getcwd()))
-from network.scripts.detector_50 import Detector
 
 class Operate:
     def __init__(self, args):
@@ -39,11 +29,6 @@ class Operate:
             self.pibot = dh.DatasetPlayer("record")
         else:
             self.pibot = PenguinPi(args.ip, args.port)
-
-        # initialise SLAM parameters
-        self.ekf = self.init_ekf(args.calib_dir, args.ip)
-        self.aruco_det = aruco.aruco_detector(
-            self.ekf.robot, marker_length = 0.07) # size of the ARUCO markers
 
         # robot speed scale factor
         self.speed = 1
@@ -75,12 +60,7 @@ class Operate:
         self.img = np.zeros([240,320,3], dtype=np.uint8)
         self.aruco_img = np.zeros([240,320,3], dtype=np.uint8)
         self.detector_output = np.zeros([240,320], dtype=np.uint8)
-        if args.ckpt == "":
-            self.detector = None
-            self.network_vis = cv2.imread('pics/8bit/detector_splash.png')
-        else:
-            self.detector = Detector(args.ckpt, use_gpu=False)
-            self.network_vis = np.ones((240, 320,3))* 100
+
         self.bg = pygame.image.load('pics/gui_mask.jpg')
 
     # wheel control
@@ -92,40 +72,12 @@ class Operate:
                 self.command['motion'],tick=40*self.speed, turning_tick=10*self.speed)
         if not self.data is None:
             self.data.write_keyboard(lv, rv)
-        dt = time.time() - self.control_clock
-        drive_meas = measure.Drive(lv, rv, dt)
-        self.control_clock = time.time()
-        return drive_meas, lv, rv
+
     # camera control
     def take_pic(self):
         self.img = self.pibot.get_image()
         if not self.data is None:
             self.data.write_image(self.img)
-
-    # SLAM with ARUCO markers       
-    def update_slam(self, drive_meas, lv, rv):
-        lms, self.aruco_img = self.aruco_det.detect_marker_positions(self.img)
-        if self.request_recover_robot:
-            is_success = self.ekf.recover_from_pause(lms)
-            if is_success:
-                self.notification = 'Robot pose is successfuly recovered'
-                self.ekf_on = True
-            else:
-                self.notification = 'Recover failed, need >2 landmarks!'
-                self.ekf_on = False
-            self.request_recover_robot = False
-        elif self.ekf_on: # and not self.debug_flag:
-            self.ekf.predict(drive_meas, lv, rv)
-            self.ekf.add_landmarks(lms)
-            self.ekf.update(lms)
-
-    # using computer vision to detect targets
-    def detect_target(self):
-        if self.command['inference'] and self.detector is not None:
-            self.detector_output, self.network_vis = self.detector.detect_single_image(self.img)
-            self.command['inference'] = False
-            self.file_output = (self.detector_output, self.ekf)
-            self.notification = f'{len(np.unique(self.detector_output))-1} target type(s) detected'
 
     # save raw images taken by the camera
     def save_image(self):
@@ -138,42 +90,6 @@ class Operate:
             self.command['save_image'] = False
             self.notification = f'{f_} is saved'
             self.timer = time.time()
-
-    # wheel and camera calibration for SLAM
-    def init_ekf(self, datadir, ip):
-        fileK = "{}intrinsic.txt".format(datadir)
-        camera_matrix = np.loadtxt(fileK, delimiter=',')
-        fileD = "{}distCoeffs.txt".format(datadir)
-        dist_coeffs = np.loadtxt(fileD, delimiter=',')
-        fileS = "{}scale.txt".format(datadir)
-        scale = np.loadtxt(fileS, delimiter=',')
-        if ip == 'localhost':
-            scale /= 2
-            self.speed = 3
-        
-        #print(self.speed)    
-
-        fileB = "{}baseline.txt".format(datadir)  
-        baseline = np.loadtxt(fileB, delimiter=',')
-        robot = Robot(baseline, scale, camera_matrix, dist_coeffs)
-        return EKF(robot)
-
-    # save SLAM map
-    def record_data(self):
-        if self.command['output']:
-            self.output.write_map(self.ekf)
-            self.notification = 'Map is saved'
-            self.command['output'] = False
-        # save inference with the matching robot pose and detector labels
-        if self.command['save_inference']:
-            if self.file_output is not None:
-                #image = cv2.cvtColor(self.file_output[0], cv2.COLOR_RGB2BGR)
-                self.pred_fname = self.output.write_image(self.file_output[0],
-                                                        self.file_output[1])
-                self.notification = f'Prediction is saved to {operate.pred_fname}'
-            else:
-                self.notification = f'No prediction in buffer, save ignored'
-            self.command['save_inference'] = False
 
     # paint the GUI            
     def draw(self, canvas):
@@ -306,19 +222,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", metavar='', type=str, default='localhost')
     parser.add_argument("--port", metavar='', type=int, default=40000)
-    parser.add_argument("--calib_dir", type=str, default='../M5_inputs/sim/param/')
     parser.add_argument("--save_data", action='store_true')
     parser.add_argument("--play_data", action='store_true')
-    parser.add_argument("--ckpt", default='../M5_inputs/sim/model.best_sim_50.pth')
     args, _ = parser.parse_known_args()
-
-    if args.ip != 'localhost':
-        args.calib_dir = '../M5_inputs/physical/param/'
-        args.ckpt = '../M5_inputs/physical/model.best50will.pth'
-        print('physical: ', args)
-    
-    else:
-        print('simulation: ', args)
 
     pygame.font.init() 
     TITLE_FONT = pygame.font.Font('pics/8-BitMadness.ttf', 35)
@@ -356,7 +262,7 @@ if __name__ == "__main__":
     while start:
         operate.update_keyboard()
         operate.take_pic()
-        drive_meas, lv, rv = operate.control()
+        operate.control()
         operate.save_image()
         # visualise
         operate.draw(canvas)
