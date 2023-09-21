@@ -59,6 +59,7 @@ class Operate:
                         'save_inference': False,
                         'save_image': False}
         self.quit = False
+        self.timer = time.time()
         self.pred_fname = ''
         self.request_recover_robot = False
         self.file_output = None
@@ -129,13 +130,14 @@ class Operate:
     # save raw images taken by the camera
     def save_image(self):
         f_ = os.path.join(self.folder, f'img_{self.image_id}.png')
-        if self.command['save_image']:
+        if (self.timer - time.time()) > 1: #save images at least after 1 sec
             image = self.pibot.get_image()
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             cv2.imwrite(f_, image)
             self.image_id += 1
             self.command['save_image'] = False
             self.notification = f'{f_} is saved'
+            self.timer = time.time()
 
     # wheel and camera calibration for SLAM
     def init_ekf(self, datadir, ip):
@@ -355,10 +357,7 @@ if __name__ == "__main__":
         operate.update_keyboard()
         operate.take_pic()
         drive_meas, lv, rv = operate.control()
-        operate.update_slam(drive_meas, lv, rv)
-        operate.record_data()
         operate.save_image()
-        operate.detect_target()
         # visualise
         operate.draw(canvas)
         pygame.display.update()
