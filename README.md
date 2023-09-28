@@ -14,7 +14,7 @@ Note that if you run into installation issues that cannot find packages, try eac
 ## Connecting
 
 ```
-python3 operate.py --ip=192.168.50.1 --port=8080
+python3 operate.py --ip 192.168.50.1 --port 8080
 ```
 And you should be good to go!
 
