@@ -76,7 +76,7 @@ def sample_expert_transitions():
 transitions = sample_expert_transitions()
 
 # Behavioural Cloning
-'''
+
 bc_trainer = BC(
     observation_space=env.observation_space,
     action_space=env.action_space,
@@ -102,7 +102,7 @@ reward, _ = evaluate_policy(
     render=True,  # comment out to speed up
 )
 print(f"Reward after training: {reward}")
-'''
+
 
 # GAIL
 '''
@@ -234,6 +234,7 @@ print(f"Reward after training: {reward}")
 '''
 
 # SQIL
+'''
 sqil_trainer = sqil.SQIL(
     venv=env,
     demonstrations=transitions,
@@ -257,3 +258,4 @@ reward, _ = evaluate_policy(
     render=False,  # comment out to speed up
 )
 print(f"Reward after training: {reward}")
+'''
