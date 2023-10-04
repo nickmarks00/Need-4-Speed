@@ -10,7 +10,8 @@ class PenguinPi:
         self.ip = ip
         self.port = port
         self.wheel_vel = [0, 0]
-
+        self.endpoint = 'http://{}:{}'.format(self.ip, self.port)
+        
     ##########################################
     # Change the robot velocity here
     # tick = forward speed
@@ -40,3 +41,20 @@ class PenguinPi:
             print("Image retrieval timed out.")
             img = np.zeros((240,320,3), dtype=np.uint8)
         return img
+
+    def getEncoders(self):
+        try:
+            resp = requests.get('{}/robot/get/encoder'.format(self.endpoint), timeout=1)
+            left_enc, right_enc = resp.text.split(",")
+            return left_enc, right_enc
+        except requests.exceptions.Timeout as e:
+            print('Timed out attempting to communicate with {}:{}'.format(self.ip, self.port), file=sys.stderr)
+            return None
+        
+    def resetEncoder(self):
+        try:
+            resp = requests.get('{}/robot/hw/reset'.format(self.endpoint), timeout=5)
+            return True
+        except requests.exceptions.Timeout as e:
+            print('Timed out attempting to communicate with {}:{}'.format(self.ip, self.port), file=sys.stderr)
+            return False

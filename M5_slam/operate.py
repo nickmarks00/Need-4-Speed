@@ -5,6 +5,7 @@ import numpy as np
 import cv2 
 import os, sys
 import time
+import csv
 
 # import utility functions
 sys.path.insert(0, "{}/utility".format(os.getcwd()))
@@ -69,7 +70,7 @@ class Operate:
             lv, rv = self.pibot.set_velocity()            
         else:
             lv, rv = self.pibot.set_velocity(
-                self.command['motion'],tick=40*self.speed, turning_tick=10*self.speed)
+                self.command['motion'],tick=20*self.speed, turning_tick=5*self.speed)
         if not self.data is None:
             self.data.write_keyboard(lv, rv)
 
@@ -82,7 +83,7 @@ class Operate:
     # save raw images taken by the camera
     def save_image(self):
         f_ = os.path.join(self.folder, f'img_{self.image_id}.png')
-        if ((self.timer - time.time()) > 1 ) and (self.ekf_on == True): #save images at least after 1 sec
+        if (self.ekf_on == True): #save images at least after 1 sec
             image = self.pibot.get_image()
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             cv2.imwrite(f_, image)
@@ -99,20 +100,20 @@ class Operate:
         h_pad = 20
 
         # paint SLAM outputs
-        ekf_view = self.ekf.draw_slam_state(res=(320, 480+v_pad),
-            not_pause = self.ekf_on)
-        canvas.blit(ekf_view, (2*h_pad+320, v_pad))
-        robot_view = cv2.resize(self.aruco_img, (320, 240))
-        self.draw_pygame_window(canvas, robot_view, 
-                                position=(h_pad, v_pad)
-                                )
+        # ekf_view = self.ekf.draw_slam_state(res=(320, 480+v_pad),
+        #     not_pause = self.ekf_on)
+        # canvas.blit(ekf_view, (2*h_pad+320, v_pad))
+        # robot_view = cv2.resize(self.aruco_img, (320, 240))
+        # self.draw_pygame_window(canvas, robot_view, 
+        #                         position=(h_pad, v_pad)
+        #                         )
 
         # for target detector (M3)
-        detector_view = cv2.resize(self.network_vis,
-                                   (320, 240), cv2.INTER_NEAREST)
-        self.draw_pygame_window(canvas, detector_view, 
-                                position=(h_pad, 240+2*v_pad)
-                                )
+        # detector_view = cv2.resize(self.network_vis,
+        #                            (320, 240), cv2.INTER_NEAREST)
+        # self.draw_pygame_window(canvas, detector_view, 
+        #                         position=(h_pad, 240+2*v_pad)
+        #                         )
 
         # canvas.blit(self.gui_mask, (0, 0))
         self.put_caption(canvas, caption='SLAM', position=(2*h_pad+320, v_pad))
@@ -156,56 +157,59 @@ class Operate:
                 self.command['motion'][0] = min(self.command['motion'][0]+1, 1)
             # drive backward
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_DOWN:
-                self.command['motion'][0] = max(self.command['motion'][0]-1, -1)
+                self.command['motion'][0] = max(
+                    self.command['motion'][0]-1, -1)
             # turn left
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_LEFT:
                 self.command['motion'][1] = min(self.command['motion'][1]+1, 1)
             # drive right
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHT:
-                self.command['motion'][1] = max(self.command['motion'][1]-1, -1)
+                self.command['motion'][1] = max(
+                    self.command['motion'][1]-1, -1)
             # stop
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+            elif event.type == pygame.KEYUP:
                 self.command['motion'] = [0, 0]
             # save image
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_i:
                 self.command['save_image'] = True
-            # save SLAM map
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_s:
-                self.command['output'] = True
-            # reset SLAM map
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-                if self.double_reset_comfirm == 0:
-                    self.notification = 'Press again to confirm CLEAR MAP'
-                    self.double_reset_comfirm +=1
-                elif self.double_reset_comfirm == 1:
-                    self.notification = 'SLAM Map is cleared'
-                    self.double_reset_comfirm = 0
-                    self.ekf.reset()
+            # # save SLAM map
+            # elif event.type == pygame.KEYDOWN and event.key == pygame.K_s:
+            #     self.command['output'] = True
+            # # reset SLAM map
+            # elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+            #     if self.double_reset_comfirm == 0:
+            #         self.notification = 'Press again to confirm CLEAR MAP'
+            #         self.double_reset_comfirm +=1
+            #     elif self.double_reset_comfirm == 1:
+            #         self.notification = 'SLAM Map is cleared'
+            #         self.double_reset_comfirm = 0
+            #         self.ekf.reset()
             # run SLAM
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
-                n_observed_markers = len(self.ekf.taglist)
-                if n_observed_markers == 0:
-                    if not self.ekf_on:
-                        self.notification = 'SLAM is running'
-                        self.ekf_on = True
-                    else:
-                        self.notification = '> 2 landmarks is required for pausing'
-                elif n_observed_markers < 3:
-                    self.notification = '> 2 landmarks is required for pausing'
-                else:
-                    if not self.ekf_on:
-                        self.request_recover_robot = True
-                    self.ekf_on = not self.ekf_on
-                    if self.ekf_on:
-                        self.notification = 'SLAM is running'
-                    else:
-                        self.notification = 'SLAM is paused'
-            # run object detector
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_p:
-                self.command['inference'] = True
-            # save object detection outputs
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_n:
-                self.command['save_inference'] = True
+                self.ekf_on = True
+                # n_observed_markers = len(self.ekf.taglist)
+                # if n_observed_markers == 0:
+                #     if not self.ekf_on:
+                #         self.notification = 'SLAM is running'
+                #         self.ekf_on = True
+                #     else:
+                #         self.notification = '> 2 landmarks is required for pausing'
+                # elif n_observed_markers < 3:
+                #     self.notification = '> 2 landmarks is required for pausing'
+                # else:
+                #     if not self.ekf_on:
+                #         self.request_recover_robot = True
+                #     self.ekf_on = not self.ekf_on
+                #     if self.ekf_on:
+                #         self.notification = 'SLAM is running'
+                #     else:
+                #         self.notification = 'SLAM is paused'
+            # # run object detector
+            # elif event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+            #     self.command['inference'] = True
+            # # save object detection outputs
+            # elif event.type == pygame.KEYDOWN and event.key == pygame.K_n:
+            #     self.command['save_inference'] = True
             # quit
             elif event.type == pygame.QUIT:
                 self.quit = True
@@ -259,14 +263,29 @@ if __name__ == "__main__":
 
     operate = Operate(args)
 
-    while start:
-        operate.update_keyboard()
-        operate.take_pic()
-        operate.control()
-        operate.save_image()
-        # visualise
-        operate.draw(canvas)
-        pygame.display.update()
+    reset = operate.pibot.resetEncoder()
+    
+    motor_speeds = []
+    
+    with open('lab_output/actions.csv', 'w') as f:
+        writer = csv.writer(f)
+        
+        while start:
+            operate.update_keyboard()
+            operate.take_pic()
+            operate.control()
+            operate.save_image()
+            # visualise
+            operate.draw(canvas)
+            
+            if operate.ekf_on:
+                left_speed, right_speed = operate.pibot.getEncoders()
+                # motor_speeds.append([left_speed, right_speed])
+                motor_speeds = [left_speed, right_speed]
+                writer.writerow(motor_speeds)
+                # print('left speed: ', left_speed, 'right speed: ', right_speed)
+            pygame.display.update()
+            reset = operate.pibot.resetEncoder()
 
         
 
