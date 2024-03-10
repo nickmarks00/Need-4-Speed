@@ -1,17 +1,18 @@
-'''
+"""
 Creates plots for the training of a given model. You will need to specify as a runtime argument the path to the log folder, e.g. demos/d3rlpy_logs/<model-name>_<code>
-'''
+"""
 
 import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def plot(dir:str):
+
+def plot(dir: str):
 
     # Load the enviroment data AKA the reward
     env_df = pd.read_csv(dir + "/environment.csv", header=None)
 
-    # Load the loss data 
+    # Load the loss data
     loss_df = pd.read_csv(dir + "/loss.csv", header=None)
 
     # Plot the loss data
