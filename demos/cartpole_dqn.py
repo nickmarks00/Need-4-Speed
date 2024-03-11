@@ -27,12 +27,12 @@ if __name__ == "__main__":
     # Train the model
     dqn.fit(
         dataset,
-        n_steps=10000,
+        n_steps=2000,
         evaluators={
             "td_error": td_error_evaluator,
             "environment": env_evaluator,
         },
         n_steps_per_epoch=500,
-        save_interval=5,
+        save_interval=2,
         experiment_name="cartpole_dqn",
     )
