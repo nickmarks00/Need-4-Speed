@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     # Using the vanilla config settings and placing model on GPU
     # Refer to https://d3rlpy.readthedocs.io/en/latest/references/algos.html#d3rlpy.algos.cql.IQL for more details on parameters
-    cql = CQLConfig().create(device="cuda:0")
+    cql = CQLConfig().create(device=device)
 
     cql.build_with_dataset(dataset)
 
