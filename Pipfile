@@ -4,6 +4,14 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+numpy = "*"
+d3rlpy = "*"
+pynvim = "*"
+pandas = "*"
+pillow = "*"
+opencv-python = "*"
+pygame = "*"
+requests = "*"
 
 [dev-packages]
 
