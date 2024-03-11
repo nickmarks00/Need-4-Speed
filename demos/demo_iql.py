@@ -6,9 +6,11 @@ from d3rlpy.datasets import get_d4rl
 from d3rlpy.algos import IQLConfig
 from d3rlpy.metrics import TDErrorEvaluator, EnvironmentEvaluator
 import os
+import torch
 
 if __name__ == "__main__":
     experiment_name = "iql_hopper_medium_v2"
+    device = "cuda:0" if torch.cuda.is_available() else None
 
     os.system(f"rm -rf d3rlpy_logs/{experiment_name}")
 
@@ -17,7 +19,7 @@ if __name__ == "__main__":
 
     # Using the vanilla config settings and placing model on GPU
     # Refer to https://d3rlpy.readthedocs.io/en/latest/references/algos.html#d3rlpy.algos.iql.IQL for more details on parameters
-    iql = IQLConfig().create(device="cuda:0")
+    iql = IQLConfig().create(device=device)
 
     iql.build_with_dataset(dataset)
     print(iql.get_action_type())
