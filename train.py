@@ -1,18 +1,18 @@
+import os
 import numpy as np
 from d3rlpy.algos import IQLConfig
 from d3rlpy.dataset import MDPDataset, FrameStackTransitionPicker
 import torch
 
-# from d3rlpy.metrics import TDErrorEvaluator, EnvironmentEvaluator
-
-from make_dataset import DatasetFactory
+from utils.make_dataset import DatasetFactory
+from utils.file_handler import next_path
 
 
 PATH_TO_DATASET = "/home/chumbers/Downloads/"
 
 
 def main() -> None:
-    experiment_name = "iql_pibot_mock"
+    experiment_name = "iql"
 
     device = "cuda:0" if torch.cuda.is_available() else None
 
@@ -23,7 +23,7 @@ def main() -> None:
         actions=np.random.random((100, 2)),
         rewards=raw_dataset.rewards,
         terminals=raw_dataset.terminals,
-        transition_picker=FrameStackTransitionPicker(n_frames=4),
+        # transition_picker=FrameStackTransitionPicker(n_frames=4),
     )
 
     iql = IQLConfig().create(device=device)
@@ -32,11 +32,14 @@ def main() -> None:
     # Train the model
     iql.fit(
         dataset,
-        n_steps=1000,
-        n_steps_per_epoch=100,
-        save_interval=10,
+        n_steps=20,
+        n_steps_per_epoch=5,
+        save_interval=2,
         experiment_name=experiment_name,
     )
+
+    model_path = next_path("models/iql-%s.d3")
+    iql.save(model_path)
 
 
 if __name__ == "__main__":

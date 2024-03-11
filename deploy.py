@@ -6,9 +6,12 @@ import time
 import csv
 import pygame  # python package for GUI
 import shutil  # python package for file operations
+from PIL import Image, ImageEnhance
+import d3rlpy
 
-from utils.pibot import PenguinPi  # access the robot
+from utils.penguin_pi import PenguinPi  # access the robot
 import utils.DatasetHandler as dh  # save/load functions
+from utils.file_handler import fetch_model_path
 
 
 class Operate:
@@ -55,28 +58,48 @@ class Operate:
         self.start_time = time.time()
         self.control_clock = time.time()
         # initialise images
-        self.img = np.zeros([240, 320, 3], dtype=np.uint8)
-        self.aruco_img = np.zeros([240, 320, 3], dtype=np.uint8)
-        self.detector_output = np.zeros([240, 320], dtype=np.uint8)
+        self.img = np.zeros(
+            [1, 3, 320, 240], dtype=np.uint8
+        )  # this is the format that P-Pi images are received as
 
         self.bg = pygame.image.load("pics/gui_mask.jpg")
 
+        path_to_model = fetch_model_path()
+        print(path_to_model)
+        self.loaded_model = d3rlpy.load_learnable(path_to_model)
+
     # wheel control
     def control(self):
+        predictions = self.loaded_model.predict(self.img)
+        predictions = predictions[0]
+        drive = [0, 0]
+        for idx, prediction in enumerate(predictions):
+            drive[idx] = int(((40 * prediction) + 7) / 1.3) + 10
+
         if args.play_data:
             lv, rv = self.pibot.set_velocity()
         else:
-            lv, rv = self.pibot.set_velocity(
-                self.command["motion"],
-                tick=20 * self.speed,
-                turning_tick=5 * self.speed,
-            )
+            lv, rv = self.pibot.set_velocity(drive[0], drive[1])
+            print(lv, rv)
+            time.sleep(0.5)
         if self.data is not None:
             self.data.write_keyboard(lv, rv)
 
     # camera control
     def take_pic(self):
-        self.img = self.pibot.get_image()
+        img = self.pibot.get_image()
+        img = Image.fromarray(img)
+
+        contrast_enhancer = ImageEnhance.Contrast(img)
+        img = contrast_enhancer.enhance(3)
+        sharpness_enhancer = ImageEnhance.Sharpness(img)
+        img = sharpness_enhancer.enhance(4)
+
+        img = np.asarray(img).astype("float32") / 255.0
+
+        img = img[180:240][0:320]
+        # img = img[0:320][150:260]
+        # self.img = np.array([img.reshape(60, 320, 3)])
         if self.data is not None:
             self.data.write_image(self.img)
 
@@ -132,29 +155,10 @@ class Operate:
     # keyboard teleoperation
     def update_keyboard(self):
         for event in pygame.event.get():
-            # drive forward
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
-                self.command["motion"][0] = min(self.command["motion"][0] + 1, 1)
-            # drive backward
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_DOWN:
-                self.command["motion"][0] = max(self.command["motion"][0] - 1, -1)
-            # turn left
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_LEFT:
-                self.command["motion"][1] = min(self.command["motion"][1] + 1, 1)
-            # drive right
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHT:
-                self.command["motion"][1] = max(self.command["motion"][1] - 1, -1)
-            # stop
-            elif event.type == pygame.KEYUP:
-                self.command["motion"] = [0, 0]
-            # save image
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_i:
-                self.command["save_image"] = True
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
                 self.ekf_on = True
             elif event.type == pygame.QUIT:
                 self.quit = True
-            # quit
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 self.quit = True
         if self.quit:
@@ -211,16 +215,16 @@ if __name__ == "__main__":
 
     motor_speeds = []
 
-    with open(os.path.join(operate.folder, "actions.csv"), "w") as f:
+    with open("output/lab_output/actions.csv", "w") as f:
         writer = csv.writer(f)
 
         while start:
             operate.update_keyboard()
             operate.take_pic()
             operate.control()
-            operate.save_image()
+            # operate.save_image()
             # visualise
-            operate.draw(canvas)
+            # operate.draw(canvas)
 
             if operate.ekf_on:
                 left_speed, right_speed = operate.pibot.getEncoders()
