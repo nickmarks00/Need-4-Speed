@@ -16,7 +16,7 @@ class DatasetFactory:
     def create(self) -> None:
         print("Creating dataset from:", self.path_to_dataset)
 
-        df = pd.read_csv(self.path_to_dataset + "/actions1.csv", header=None)
+        df = pd.read_csv(self.path_to_dataset + "/actions.csv", header=None)
         num_rows = len(df)
         print("Number of rows in dataset:", num_rows)
 
