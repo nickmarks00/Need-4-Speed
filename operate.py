@@ -59,8 +59,6 @@ class Operate:
             # stop
             elif event.type == pygame.KEYUP:
                 self.command["motion"] = [0, 0]
-            elif event.type == pygame.QUIT:
-                self.quit = True
             # quit
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 self.quit = True
