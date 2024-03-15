@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from d3rlpy.algos import IQLConfig
-from d3rlpy.dataset import MDPDataset, FrameStackTransitionPicker
+from d3rlpy.dataset import MDPDataset
 import torch
 
 from utils.make_dataset import DatasetFactory
@@ -29,6 +29,9 @@ def main() -> None:
     iql = IQLConfig().create(device=device)
     iql.build_with_dataset(dataset)
 
+    print("\n=========================================")
+    print("Training IQL...")
+    print("=========================================")
     # Train the model
     iql.fit(
         dataset,
@@ -38,8 +41,14 @@ def main() -> None:
         experiment_name=experiment_name,
     )
 
+    # check if models/ directory exists
+    if not os.path.exists("models"):
+        os.makedirs("models")
+        print("\nCreated models/ directory")
+
     model_path = next_path("models/iql-%s.d3")
     iql.save(model_path)
+    print(f"\nModel saved to {model_path}")
 
 
 if __name__ == "__main__":
