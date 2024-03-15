@@ -1,3 +1,4 @@
+from typing import Tuple, Union
 import numpy as np
 import requests
 import cv2
@@ -42,7 +43,6 @@ class PenguinPi:
                 + "&time="
                 + str(time)
             )
-        return l_vel, r_vel
 
     def get_image(self):
         try:
@@ -58,12 +58,12 @@ class PenguinPi:
             img = np.zeros((240, 320, 3), dtype=np.uint8)
         return img
 
-    def getEncoders(self):
+    def getEncoders(self) -> Union[Tuple[str, str], None]:
         try:
             resp = requests.get("{}/robot/get/encoder".format(self.endpoint), timeout=1)
             left_enc, right_enc = resp.text.split(",")
             return left_enc, right_enc
-        except requests.exceptions.Timeout as e:
+        except requests.exceptions.Timeout as _:
             print(
                 "Timed out attempting to communicate with {}:{}".format(
                     self.ip, self.port
