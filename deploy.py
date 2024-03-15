@@ -1,11 +1,13 @@
+# Package imports
 import numpy as np
 import sys
 import time
-import csv
 import d3rlpy
 
+# Local imports
 from utils.penguin_pi import PenguinPi  # access the robot
 from utils.file_handler import fetch_model_path
+from utils.globals import dims
 
 
 class Operate:
@@ -13,11 +15,12 @@ class Operate:
 
         self.pibot = PenguinPi(args.ip, args.port)
 
-        self.speed = 1  # robot speed scale factor
-
         self.image_id = 0
+        self.w = dims["width"]
+        self.h = dims["height"]
+        self.c = dims["channels"]
         self.img = np.zeros(
-            [1, 3, 320, 240], dtype=np.uint8
+            [1, self.c, self.w, self.h], dtype=np.uint8
         )  # this is the format that P-Pi images are received as
 
         path_to_model = fetch_model_path()
@@ -65,19 +68,13 @@ if __name__ == "__main__":
 
     motor_speeds = []
 
-    with open("output/lab_output/actions.csv", "w") as f:
-        writer = csv.writer(f)
-
-        while start:
-            try:
-                operate.take_pic()
-                operate.control()
-                left_speed, right_speed = operate.pibot.getEncoders()
-                motor_speeds = [left_speed, right_speed]
-                writer.writerow(motor_speeds)
-                reset = operate.pibot.resetEncoder()
-            except KeyboardInterrupt:
-                print("Exiting gracefully...")
-                print("\nZeroing velocities...")
-                operate.pibot.set_velocity(0, 0)
-                sys.exit()
+    while start:
+        try:
+            operate.take_pic()
+            operate.control()
+            reset = operate.pibot.resetEncoder()
+        except KeyboardInterrupt:
+            print("Exiting gracefully...")
+            print("\nZeroing velocities...")
+            operate.pibot.set_velocity(0, 0)
+            sys.exit()

@@ -3,14 +3,16 @@ import pandas as pd
 from PIL import Image
 import glob
 
-
-# Note that channel dimension HAS to come first according to the docs
-IMAGE_DIM = (3, 320, 240)  # channel x width x height
+# Local imports
+from globals import DIMS
 
 
 class DatasetFactory:
     def __init__(self, path_to_dataset: str) -> None:
         self.path_to_dataset = path_to_dataset
+        self.w = DIMS["width"]
+        self.h = DIMS["height"]
+        self.c = DIMS["channels"]
         self.create()
 
     def create(self) -> None:
@@ -48,11 +50,11 @@ class DatasetFactory:
         self.observations = np.array(images).transpose(0, 3, 2, 1)
 
         try:
-            assert self.observations.shape[1:] == IMAGE_DIM
+            assert self.observations.shape[1:] == (self.c, self.w, self.h)
             print(f"Observations shape: {self.observations.shape}")
         except AssertionError:
             print(
-                f"Expected images of shape {IMAGE_DIM}, got {self.observations.shape[1:]}"
+                f"Expected images of shape {(self.c, self.w, self.h)}, got {self.observations.shape[1:]}"
             )
 
     # Continuous action space must be between [-1, 1]

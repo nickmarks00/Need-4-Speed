@@ -1,9 +1,11 @@
+# Package imports
 import os
 import numpy as np
 from d3rlpy.algos import IQLConfig
 from d3rlpy.dataset import MDPDataset
 import torch
 
+# Local imports
 from utils.make_dataset import DatasetFactory
 from utils.file_handler import next_path
 

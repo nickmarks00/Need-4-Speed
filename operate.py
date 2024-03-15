@@ -6,7 +6,8 @@ import sys
 import csv
 import pygame  # python package for GUI
 
-from utils.pibot import PenguinPi  # access the robot
+from utils.penguin_pi import PenguinPi  # access the robot
+from utils.globals import DIMS
 
 
 class Operate:
@@ -23,8 +24,11 @@ class Operate:
             "motion": [0, 0],
         }
         self.quit = False
+        self.w = DIMS["width"]
+        self.h = DIMS["height"]
+        self.c = DIMS["channels"]
         self.image_id = 0
-        self.img = np.zeros([240, 320, 3], dtype=np.uint8)
+        self.img = np.zeros([self.h, self.w, self.c], dtype=np.uint8)
 
     # wheel control
     def control(self):
@@ -38,6 +42,8 @@ class Operate:
     def save_image(self):
         f_ = os.path.join(self.folder, f"img_{self.image_id}.png")
         image = self.pibot.get_image()
+        image = image[240 - self.h :, :, :]  # crop to 120x320x3
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         cv2.imwrite(f_, image)
         self.image_id += 1
 
