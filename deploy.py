@@ -7,7 +7,7 @@ import d3rlpy
 # Local imports
 from utils.penguin_pi import PenguinPi  # access the robot
 from utils.file_handler import fetch_model_path
-from utils.globals import dims
+from utils.globals import DIMS
 
 
 class Operate:
@@ -16,9 +16,9 @@ class Operate:
         self.pibot = PenguinPi(args.ip, args.port)
 
         self.image_id = 0
-        self.w = dims["width"]
-        self.h = dims["height"]
-        self.c = dims["channels"]
+        self.w = DIMS["width"]
+        self.h = DIMS["height"]
+        self.c = DIMS["channels"]
         self.img = np.zeros(
             [1, self.c, self.w, self.h], dtype=np.uint8
         )  # this is the format that P-Pi images are received as
@@ -35,8 +35,8 @@ class Operate:
         for idx, prediction in enumerate(predictions):
             drive[idx] = int(((40 * prediction) + 7) / 1.3) + 10
 
-        lv, rv = self.pibot.set_velocity(drive[0], drive[1])
-        print(lv, rv)
+        speeds = self.pibot.predict_velocity(drive[0], drive[1])
+        print(speeds)
         time.sleep(0.5)
 
     # camera control

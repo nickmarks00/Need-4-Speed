@@ -43,7 +43,6 @@ class Operate:
         f_ = os.path.join(self.folder, f"img_{self.image_id}.png")
         image = self.pibot.get_image()
         image = image[240 - self.h :, :, :]  # crop to 120x320x3
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         cv2.imwrite(f_, image)
         self.image_id += 1
 
