@@ -108,17 +108,16 @@ class PenguinPi:
                 ),
                 file=sys.stderr,
             )
-            return None
+            return False
 
-    def resetEncoder(self):
+    def stop(self):
         try:
-            _ = requests.get("{}/robot/hw/reset".format(self.endpoint), timeout=5)
-            return True
+            resp = requests.get("{}/robot/stop".format(self.endpoint), timeout=1)
+            return resp.json()
         except requests.exceptions.Timeout as _:
             print(
                 "Timed out attempting to communicate with {}:{}".format(
                     self.ip, self.port
-                ),
-                file=sys.stderr,
+                )
             )
-            return False
+            return None
