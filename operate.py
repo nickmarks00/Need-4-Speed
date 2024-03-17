@@ -72,6 +72,7 @@ class Operate:
                 self.quit = True
         if self.quit:
             pygame.quit()
+            self.pibot.stop()
             sys.exit()
 
 
