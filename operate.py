@@ -7,6 +7,7 @@ import csv
 import pygame  # python package for GUI
 
 from utils.penguin_pi import PenguinPi  # access the robot
+from utils.rewards import RewardHandler
 from utils.globals import DIMS
 
 
@@ -29,6 +30,8 @@ class Operate:
         self.c = DIMS["channels"]
         self.image_id = 0
         self.img = np.zeros([self.h, self.w, self.c], dtype=np.uint8)
+
+        self.rewards = RewardHandler()
 
     # wheel control
     def control(self):
@@ -88,7 +91,7 @@ if __name__ == "__main__":
 
     motor_speeds = []
 
-    with open(os.path.join(operate.folder, "actions.csv"), "w") as f:
+    with open(os.path.join(operate.folder, "operate.csv"), "w") as f:
         writer = csv.writer(f)
 
         while True:
@@ -97,7 +100,10 @@ if __name__ == "__main__":
             if operate.command["motion"] != [0, 0]:  # actual  input given
                 operate.take_pic()
                 operate.save_image()
-                motor_speeds = operate.pibot.getEncoders()
+                l_vel, r_vel = operate.pibot.getEncoders()
+                x, y, theta = operate.pibot.get_pose()
+                reward = operate.rewards.reward_smoothness(l_vel, r_vel)
+                reward += operate.rewards.reward_pose(x, y, theta)
                 if motor_speeds is not None:
-                    writer.writerow(motor_speeds)
+                    writer.writerow((motor_speeds, reward))
             reset = operate.pibot.resetEncoder()

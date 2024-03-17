@@ -85,10 +85,22 @@ class PenguinPi:
         return img
 
     def getEncoders(self):
+        resp = requests.get("{}/robot/get/encoder".format(self.endpoint), timeout=1)
+        left_enc, right_enc = resp.text.split(",")
+        return int(left_enc), int(right_enc)
+
+    def get_pose(self):
+        resp = requests.get("{}/robot/get/pose".format(self.endpoint), timeout=1)
+        assert resp.status_code == 200
+        x, y, theta = list(
+            map(float, resp.text.split(","))
+        )  # read str,str,str into float,float,float
+        return x, y, theta
+
+    def resetEncoder(self):
         try:
-            resp = requests.get("{}/robot/get/encoder".format(self.endpoint), timeout=1)
-            left_enc, right_enc = resp.text.split(",")
-            return left_enc, right_enc
+            _ = requests.get("{}/robot/hw/reset".format(self.endpoint), timeout=5)
+            return True
         except requests.exceptions.Timeout as _:
             print(
                 "Timed out attempting to communicate with {}:{}".format(

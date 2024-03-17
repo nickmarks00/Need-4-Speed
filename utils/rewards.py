@@ -1,4 +1,5 @@
 from typing import List
+import numpy as np
 import math
 
 
@@ -11,26 +12,17 @@ class RewardHandler:
     """
 
     def __init__(self) -> None:
-        self.time_since_infraction = 0
-        self.buffer = Buffer()
-        self.smoothness_weight = 0.01
+        self.smoothness_buffer = Buffer(2)
+        self.pose_buffer = Buffer(3)
+        self.weights = {"smoothness": 0.01, "pose_pos": 0.05, "pose_theta": 0.1}
 
-    def calculate_reward(self) -> float:
-        reward = math.sqrt(self.time_since_infraction)
-        self.time_since_infraction += 1
-        return reward
-
-    def handle_infraction(self) -> int:
-        self.time_since_infraction = 0
-        return 0
-
-    def reward_smoothness(self, l_vel: float, r_vel: float) -> float:
-        self.buffer.push([l_vel, r_vel])
-        l_vel_avg = sum(self.buffer[0]) / len(self.buffer[0])
-        r_vel_avg = sum(self.buffer[1]) / len(self.buffer[0])
+    def reward_smoothness(self, l_vel: int, r_vel: int) -> float:
+        self.smoothness_buffer.push([l_vel, r_vel])
+        l_vel_avg = np.mean(self.smoothness_buffer[0])
+        r_vel_avg = np.mean(self.smoothness_buffer[1])
 
         try:
-            reward = self.smoothness_weight * (
+            reward = self.weights["smoothness"] * (
                 1 / math.sqrt(abs(l_vel - l_vel_avg))
                 + 1 / math.sqrt(abs(r_vel - r_vel_avg))
             )
@@ -42,31 +34,38 @@ class RewardHandler:
 
         return reward
 
+    def reward_pose(self, x: float, y: float, theta: float) -> float:
+        x_avg = np.mean(self.pose_buffer[0])
+        y_avg = np.mean(self.pose_buffer[1])
+        theta_avg = np.mean(self.pose_buffer[2])
+
+        reward = self.weights["pose_pos"] * (
+            math.exp(-1 * ((x - x_avg) ** 2 + (y - y_avg) ** 2))
+        ) + self.weights["pose_theta"] * math.exp(-1 * (theta - theta_avg) ** 2)
+        return reward
+
 
 class Buffer:
     """
-    Buffer class for velocity smoothing
+    Buffer class for different reward types
     """
 
-    def __init__(self, buffer_size=3) -> None:
+    def __init__(self, buffer_dim, buffer_size=3) -> None:
         self.capacity: int = buffer_size
-        self.buffer: List[List[float]] = [[0], [0]]
+        self.dim: int = buffer_dim
+        self.buffer: np.ndarray = np.array([[0] for _ in range(self.dim)])
 
-    def push(self, vals: List[float]) -> None:
-        if not self.is_full():
-            self.buffer[0].append(vals[0])  # left velocity
-            self.buffer[1].append(vals[1])  # right velocity
-        else:
+    def push(self, vals) -> None:
+        if self.is_full():
             self.pop()
-            self.buffer[0].append(vals[0])  # left velocity
-            self.buffer[1].append(vals[1])  # right velocity
-        print(self.buffer)
+        for i in range(self.dim):
+            np.append(self.buffer[i], vals[i])
 
     def pop(self) -> None:
-        self.buffer[0] = self.buffer[0][1:]
-        self.buffer[1] = self.buffer[1][1:]
+        for i in range(self.dim):
+            self.buffer[i] = self.buffer[i][1:]
 
-    def is_full(self):
+    def is_full(self) -> bool:
         if len(self.buffer[0]) < self.capacity:
             return False
         return True
@@ -74,8 +73,8 @@ class Buffer:
     def __getitem__(self, idx):
         return self.buffer[idx]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.buffer)
 
-    def __setitem__(self, _, val: List[float]):
-        self.push(val)
+    def __setitem__(self, _, vals):
+        self.push(vals)
