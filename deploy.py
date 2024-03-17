@@ -76,5 +76,5 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("Exiting gracefully...")
             print("\nZeroing velocities...")
-            operate.pibot.set_velocity(0, 0)
+            operate.pibot.stop()
             sys.exit()
