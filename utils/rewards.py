@@ -1,4 +1,3 @@
-from typing import List
 import numpy as np
 import math
 
@@ -14,7 +13,21 @@ class RewardHandler:
     def __init__(self) -> None:
         self.smoothness_buffer = Buffer(2)
         self.pose_buffer = Buffer(3)
-        self.weights = {"smoothness": 0.01, "pose_pos": 0.05, "pose_theta": 0.1}
+        self.weights = {
+            "smoothness": 0.01,
+            "pose_pos": 0.05,
+            "pose_theta": 0.1,
+            "track": 0.5,
+        }
+
+    def reward(
+        self, l_vel: int, r_vel: int, x: float, y: float, theta: float, img: np.ndarray
+    ) -> float:
+        reward = 0
+        reward += self.reward_smoothness(l_vel, r_vel)
+        reward += self.reward_pose(x, y, theta)
+        reward += self.reward_track(img)
+        return reward
 
     def reward_smoothness(self, l_vel: int, r_vel: int) -> float:
         self.smoothness_buffer.push([l_vel, r_vel])
@@ -43,6 +56,27 @@ class RewardHandler:
             math.exp(-1 * ((x - x_avg) ** 2 + (y - y_avg) ** 2))
         ) + self.weights["pose_theta"] * math.exp(-1 * (theta - theta_avg) ** 2)
         return reward
+
+    def reward_track(self, img: np.ndarray) -> float:
+        """
+        Reward for keeping as much of the track in view as possible
+        """
+        grey_pixels = 0
+
+        for i in range(img.shape[0]):
+            for j in range(img.shape[1]):
+                pixel = img[i, j]
+                if np.linalg.norm(pixel) < 150 and np.max(pixel) - np.min(pixel) < 10:
+                    grey_pixels += 1
+
+        try:
+            return (
+                self.weights["track"]
+                * math.log(grey_pixels)
+                / (img.shape[0] * img.shape[1])
+            )
+        except ZeroDivisionError:
+            return 0
 
 
 class Buffer:

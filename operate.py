@@ -13,9 +13,10 @@ from utils.globals import DIMS
 
 class Operate:
     def __init__(self, args):
-        self.folder = "output/pibot_dataset/"
+        self.folder = "output/"
         if os.path.exists(self.folder):
             shutil.rmtree(self.folder)
+        os.mkdir(os.path.join(self.folder, "images"))
         os.mkdir(self.folder)
 
         # initialise data parameters
@@ -43,7 +44,7 @@ class Operate:
 
     # save raw images taken by the camera
     def save_image(self):
-        f_ = os.path.join(self.folder, f"img_{self.image_id}.png")
+        f_ = os.path.join(self.folder, "images", f"img_{self.image_id}.png")
         image = self.pibot.get_image()
         image = image[240 - self.h :, :, :]  # crop to 120x320x3
         cv2.imwrite(f_, image)
@@ -103,8 +104,7 @@ if __name__ == "__main__":
                 operate.save_image()
                 l_vel, r_vel = operate.pibot.getEncoders()
                 x, y, theta = operate.pibot.get_pose()
-                reward = operate.rewards.reward_smoothness(l_vel, r_vel)
-                reward += operate.rewards.reward_pose(x, y, theta)
-                if motor_speeds is not None:
-                    writer.writerow((motor_speeds, reward))
+                reward = operate.rewards.reward(l_vel, r_vel, x, y, theta, operate.img)
+                # if motor_speeds is not None:
+                writer.writerow((motor_speeds, reward))
             reset = operate.pibot.resetEncoder()
