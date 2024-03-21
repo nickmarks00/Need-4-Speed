@@ -22,7 +22,7 @@ class DatasetFactory:
         num_rows = len(df)
         print("Number of rows in dataset:", num_rows)
 
-        self.actions: np.ndarray = df[[0, 1]].to_numpy()
+        self.actions: np.ndarray = df[[1, 2]].to_numpy()
         self.normalise_actions(axis=0)
         # self.rewards: np.ndarray = df[2].to_numpy()
         self.rewards = np.random.random(num_rows)
