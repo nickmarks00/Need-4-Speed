@@ -8,6 +8,7 @@ import pygame  # python package for GUI
 
 from utils.penguin_pi import PenguinPi  # access the robot
 from utils.rewards import RewardHandler
+from utils.plotter import Plotter
 from utils.globals import DIMS
 
 
@@ -16,8 +17,8 @@ class Operate:
         self.folder = "output/"
         if os.path.exists(self.folder):
             shutil.rmtree(self.folder)
-        os.mkdir(os.path.join(self.folder, "images"))
         os.mkdir(self.folder)
+        os.mkdir(os.path.join(self.folder, "images"))
 
         # initialise data parameters
         self.pibot = PenguinPi(args.ip, args.port)
@@ -33,6 +34,7 @@ class Operate:
         self.img = np.zeros([self.h, self.w, self.c], dtype=np.uint8)
 
         self.rewards = RewardHandler()
+        self.plotter = Plotter()
 
     # wheel control
     def control(self):
@@ -73,6 +75,7 @@ class Operate:
                 self.quit = True
         if self.quit:
             pygame.quit()
+            print("\nExiting program...")
             self.pibot.stop()
             sys.exit()
 
@@ -93,10 +96,12 @@ if __name__ == "__main__":
 
     motor_speeds = []
 
-    with open(os.path.join(operate.folder, "operate.csv"), "w") as f:
-        writer = csv.writer(f)
+    # with open(os.path.join(operate.folder, "operate.csv"), "w") as f:
 
-        while True:
+    while True:
+        try:
+            f = open(os.path.join(operate.folder, "operate.csv"), "a")
+            writer = csv.writer(f, delimiter=",")
             operate.update_keyboard()
             operate.control()
             if operate.command["motion"] != [0, 0]:  # actual  input given
@@ -104,7 +109,14 @@ if __name__ == "__main__":
                 operate.save_image()
                 l_vel, r_vel = operate.pibot.getEncoders()
                 x, y, theta = operate.pibot.get_pose()
-                reward = operate.rewards.reward(l_vel, r_vel, x, y, theta, operate.img)
+                rewards = operate.rewards.reward(l_vel, r_vel, x, y, theta, operate.img)
                 # if motor_speeds is not None:
-                writer.writerow((motor_speeds, reward))
+                vals = (l_vel, r_vel, *rewards)
+                writer.writerow(vals)
+                f.close()
+                operate.plotter.plot_reward()
             reset = operate.pibot.resetEncoder()
+        except KeyboardInterrupt:
+            print("\nExiting program...")
+            operate.pibot.stop()
+            sys.exit()

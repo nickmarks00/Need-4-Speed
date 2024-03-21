@@ -1,5 +1,6 @@
 import numpy as np
 import math
+from typing import Tuple
 
 
 class RewardHandler:
@@ -22,12 +23,16 @@ class RewardHandler:
 
     def reward(
         self, l_vel: int, r_vel: int, x: float, y: float, theta: float, img: np.ndarray
-    ) -> float:
-        reward = 0
-        reward += self.reward_smoothness(l_vel, r_vel)
-        reward += self.reward_pose(x, y, theta)
-        reward += self.reward_track(img)
-        return reward
+    ) -> Tuple[float, float, float, float]:
+        reward_smooth = self.reward_smoothness(l_vel, r_vel)
+        reward_pose = self.reward_pose(x, y, theta)
+        reward_track = self.reward_track(img)
+        return (
+            reward_smooth + reward_pose + reward_track,
+            reward_smooth,
+            reward_pose,
+            reward_track,
+        )
 
     def reward_smoothness(self, l_vel: int, r_vel: int) -> float:
         self.smoothness_buffer.push([l_vel, r_vel])
