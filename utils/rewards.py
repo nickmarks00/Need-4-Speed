@@ -75,11 +75,7 @@ class RewardHandler:
                     grey_pixels += 1
 
         try:
-            return (
-                self.weights["track"]
-                * math.log(grey_pixels)
-                / (img.shape[0] * img.shape[1])
-            )
+            return self.weights["track"] * math.log(grey_pixels) / img.shape[0]
         except ZeroDivisionError:
             return 0
 
