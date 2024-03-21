@@ -12,6 +12,7 @@ pillow = "*"
 opencv-python = "*"
 pygame = "*"
 requests = "*"
+matplotlib = "*"
 
 [dev-packages]
 
