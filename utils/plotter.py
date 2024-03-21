@@ -11,7 +11,8 @@ import os
 class Plotter:
     def __init__(self) -> None:
         style.use("fivethirtyeight")
-        self.fig = plt.figure()
+        self.dpi = 96
+        self.fig = plt.figure(figsize=(700 / self.dpi, 700 / self.dpi), dpi=self.dpi)
         self.ax = self.fig.add_subplot(1, 1, 1)
         self.xs = []
         self.ys = []
@@ -37,8 +38,19 @@ class Plotter:
 
     def plot_reward(self):
         reward_df = pd.read_csv(
-            os.path.join(os.getcwd(), "output/operate.csv"), header=None
+            os.path.join(os.getcwd(), "output/log.csv"), header=None
         )
 
-        self.ax.clear()
-        self.ax.plot(reward_df[3], reward_df[4], reward_df[5])
+        t_steps = reward_df[0]
+
+        self.ax.plot(t_steps, reward_df[3], "c")
+        self.ax.plot(t_steps, reward_df[4], "r")
+        self.ax.plot(t_steps, reward_df[5], "g")
+        self.ax.plot(t_steps, reward_df[6], "b")
+        self.ax.legend(
+            ["Total reward", "Velocity smoothing", "Pose smoothing", "Track visibility"]
+        )
+        self.ax.set_title("Live reward")
+        self.ax.set_xlabel("Time steps")
+        self.ax.set_ylabel("Reward")
+        self.fig.savefig("output/reward.png", dpi=self.dpi)

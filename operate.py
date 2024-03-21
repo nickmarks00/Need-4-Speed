@@ -96,26 +96,38 @@ if __name__ == "__main__":
 
     motor_speeds = []
 
-    # with open(os.path.join(operate.folder, "operate.csv"), "w") as f:
+    path_to_reward = os.path.join(os.getcwd(), "output/reward.png")
+    t_steps = 0
+
+    """
+    Operate.csv format
+    | Time steps | Left vel | Right vel | Total reward | Vel smooth | Pose smooth | Track vis |
+    """
 
     while True:
         try:
-            f = open(os.path.join(operate.folder, "operate.csv"), "a")
-            writer = csv.writer(f, delimiter=",")
-            operate.update_keyboard()
-            operate.control()
-            if operate.command["motion"] != [0, 0]:  # actual  input given
-                operate.take_pic()
-                operate.save_image()
-                l_vel, r_vel = operate.pibot.getEncoders()
-                x, y, theta = operate.pibot.get_pose()
-                rewards = operate.rewards.reward(l_vel, r_vel, x, y, theta, operate.img)
-                # if motor_speeds is not None:
-                vals = (l_vel, r_vel, *rewards)
-                writer.writerow(vals)
-                f.close()
-                operate.plotter.plot_reward()
-            reset = operate.pibot.resetEncoder()
+            with open(os.path.join(operate.folder, "log.csv"), "a") as f:
+                writer = csv.writer(f, delimiter=",")
+                operate.update_keyboard()
+                operate.control()
+                if operate.command["motion"] != [0, 0]:  # actual  input given
+                    t_steps += 1
+                    operate.take_pic()
+                    operate.save_image()
+                    l_vel, r_vel = operate.pibot.getEncoders()
+                    x, y, theta = operate.pibot.get_pose()
+                    rewards = operate.rewards.reward(
+                        l_vel, r_vel, x, y, theta, operate.img
+                    )
+                    vals = (t_steps, l_vel, r_vel, *rewards)
+                    writer.writerow(vals)
+                    f.flush()
+                    if t_steps > 1:
+                        operate.plotter.plot_reward()
+                        bg = pygame.image.load(path_to_reward)
+                        canvas.blit(bg, (0, 0))
+                reset = operate.pibot.resetEncoder()
+                pygame.display.update()
         except KeyboardInterrupt:
             print("\nExiting program...")
             operate.pibot.stop()
