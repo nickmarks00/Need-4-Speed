@@ -1,14 +1,23 @@
-# Need-4-Speed
+# Penguin Pi
 
-## Demos
+A branch for development work on the Penguin Pi.
 
-I've added a demo Frozen Lake simulation that uses basic Q-learning. It can be used to easily check that your Open Gymnasium environment is set-up correctly.
+## Setting up the Penguin Pi.
 
-### Usage
+Before connecting to the Penguin Pi, run the following lines to install dependencies. That is, theses commands should be executed locally.
+```
+sudo apt install python-opencv python-pygame python-numpy python-matplotlib
+```
 
-Firstly, make sure that `pipenv` is installed using `pip`. Then:
-1. Change into the `gym-frozen-lake` directory.
-2. Run `pipenv sync` or `pipenv install` to install the dependencies from the `Pipfile.lock` file.
-3. You might need to run `pipenv shell` before this. In either case, run it now to activate the virtual environment.
-4. You can then execute the Frozen Lake demo using `pipenv run python3 frozen_lake.py`. It should print the state space and action space, then the rewards from training. Finally it plays 3 games and prints the results of each.
-5. Change the `render_mode` to `human` to activate the simulation and see the training games being played "live".
+Note that if you run into installation issues that cannot find packages, try each of these packages but `python3-*` instead.
+
+## Connecting
+
+```
+python3 operate.py --ip 192.168.50.1 --port 8080
+```
+And you should be good to go!
+
+
+## Notes
+- It is weird that we are installing with `apt`. Perhaps it would be better to try setting up a virtual environment and installing the packages from there.
