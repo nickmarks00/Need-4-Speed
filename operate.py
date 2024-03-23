@@ -42,13 +42,9 @@ class Operate:
 
     # camera control
     def take_pic(self):
-        self.img = self.pibot.get_image()
-
-    # save raw images taken by the camera
-    def save_image(self):
         f_ = os.path.join(self.folder, "images", f"img_{self.image_id}.png")
         image = self.pibot.get_image()
-        image = image[240 - self.h :, :, :]  # crop to 120x320x3
+        self.img = image[240 - self.h :, :, :]  # crop to 120x320x3
         cv2.imwrite(f_, image)
         self.image_id += 1
 
@@ -113,7 +109,6 @@ if __name__ == "__main__":
                 if operate.command["motion"] != [0, 0]:  # actual  input given
                     t_steps += 1
                     operate.take_pic()
-                    operate.save_image()
                     l_vel, r_vel = operate.pibot.getEncoders()
                     x, y, theta = operate.pibot.get_pose()
                     rewards = operate.rewards.reward(
