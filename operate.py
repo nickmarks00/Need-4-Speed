@@ -14,11 +14,29 @@ from utils.globals import DIMS
 
 class Operate:
     def __init__(self, args):
+        self.mode = "one_shot" if args.one_shot else "bare"
+        self.csv_mode = "w" if args.one_shot else "a"
         self.folder = "output/"
-        if os.path.exists(self.folder):
-            shutil.rmtree(self.folder)
-        os.mkdir(self.folder)
-        os.mkdir(os.path.join(self.folder, "images"))
+        if os.path.exists(self.folder) and args.one_shot:
+            confirm = input(
+                "ONE SHOT MODE: You are about to overwrite the output folder. Continue? (y/n): "
+            )
+            if confirm == "y":
+                print("Deleting existing output folder...")
+                shutil.rmtree(self.folder)
+
+                print("Attaching reward handler and live plotter...")
+                self.rewards = RewardHandler()
+                self.plotter = Plotter()
+                self.reward_plot = os.path.join(os.getcwd(), "output/reward.png")
+            else:
+                sys.exit()
+
+        if not os.path.exists(self.folder):
+            print("Creating output folder...")
+            os.mkdir(self.folder)
+            os.mkdir(os.path.join(self.folder, "images"))
+            print("Creating images folder...")
 
         # initialise data parameters
         self.pibot = PenguinPi(args.ip, args.port)
@@ -30,11 +48,16 @@ class Operate:
         self.w = DIMS["width"]
         self.h = DIMS["height"]
         self.c = DIMS["channels"]
-        self.image_id = 0
-        self.img = np.zeros([self.h, self.w, self.c], dtype=np.uint8)
 
-        self.rewards = RewardHandler()
-        self.plotter = Plotter()
+        if self.mode == "one_shot":
+            self.image_id = 0
+        else:
+            f = open(os.path.join(self.folder, "config.txt"), "r")
+            self.image_id = int(f.readline())
+            f.close()
+        print(f"Using image ID {self.image_id}...")
+
+        self.img = np.zeros([self.h, self.w, self.c], dtype=np.uint8)
 
     # wheel control
     def control(self):
@@ -45,8 +68,16 @@ class Operate:
         f_ = os.path.join(self.folder, "images", f"img_{self.image_id}.png")
         image = self.pibot.get_image()
         self.img = image[240 - self.h :, :, :]  # crop to 120x320x3
-        cv2.imwrite(f_, image)
+        cv2.imwrite(f_, self.img)
         self.image_id += 1
+
+    def exit(self):
+        print("\nExiting program...")
+        pygame.quit()
+        with open(os.path.join(self.folder, "config.txt"), "w") as f:
+            f.write(str(self.image_id))
+        self.pibot.stop()
+        sys.exit()
 
     # keyboard teleoperation
     def update_keyboard(self):
@@ -70,10 +101,7 @@ class Operate:
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 self.quit = True
         if self.quit:
-            pygame.quit()
-            print("\nExiting program...")
-            self.pibot.stop()
-            sys.exit()
+            self.exit()
 
 
 if __name__ == "__main__":
@@ -82,6 +110,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", metavar="", type=str, default="192.168.50.1")
     parser.add_argument("--port", metavar="", type=int, default=8080)
+    parser.add_argument("--one_shot", metavar="", type=bool, default=False)
     args, _ = parser.parse_known_args()
 
     canvas = pygame.display.set_mode((700, 700))
@@ -92,38 +121,38 @@ if __name__ == "__main__":
 
     motor_speeds = []
 
-    path_to_reward = os.path.join(os.getcwd(), "output/reward.png")
-    t_steps = 0
-
     """
     Operate.csv format
     | Time steps | Left vel | Right vel | Total reward | Vel smooth | Pose smooth | Track vis |
     """
 
-    while True:
-        try:
-            with open(os.path.join(operate.folder, "log.csv"), "a") as f:
-                writer = csv.writer(f, delimiter=",")
+    with open(os.path.join(operate.folder, "log.csv"), operate.csv_mode) as f:
+        writer = csv.writer(f, delimiter=",")
+        while True:
+            try:
                 operate.update_keyboard()
                 operate.control()
                 if operate.command["motion"] != [0, 0]:  # actual  input given
-                    t_steps += 1
                     operate.take_pic()
                     l_vel, r_vel = operate.pibot.getEncoders()
                     x, y, theta = operate.pibot.get_pose()
-                    rewards = operate.rewards.reward(
-                        l_vel, r_vel, x, y, theta, operate.img
-                    )
-                    vals = (t_steps, l_vel, r_vel, *rewards)
-                    writer.writerow(vals)
-                    f.flush()
-                    if t_steps > 1:
-                        operate.plotter.plot_reward()
-                        bg = pygame.image.load(path_to_reward)
-                        canvas.blit(bg, (0, 0))
+                    if (
+                        operate.mode == "bare"
+                    ):  # just log the states, I'll calculate rewards later
+                        vals = (operate.image_id, l_vel, r_vel)
+                        writer.writerow(vals)
+                    else:  # handle reward calculation and plotting
+                        rewards = operate.rewards.reward(
+                            l_vel, r_vel, x, y, theta, operate.img
+                        )
+                        vals = (operate.image_id, l_vel, r_vel, *rewards)
+                        writer.writerow(vals)
+                        f.flush()
+                        if operate.image_id > 1:
+                            operate.plotter.plot_reward()
+                            bg = pygame.image.load(operate.reward_plot)
+                            canvas.blit(bg, (0, 0))
                 reset = operate.pibot.resetEncoder()
                 pygame.display.update()
-        except KeyboardInterrupt:
-            print("\nExiting program...")
-            operate.pibot.stop()
-            sys.exit()
+            except KeyboardInterrupt:
+                operate.exit()
