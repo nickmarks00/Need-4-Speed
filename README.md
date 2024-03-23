@@ -105,5 +105,5 @@ Once a model has been trained with `train.py`, it can be deployed to the Penguin
 
 1. Ensure that it is turned on. Wait until the LCD screen displays a valid WLAN address.
 2. Connect to the Penguin Pi's local hotspot. The network name will be something like `penguinpi:xx:xx:xx` where `x` represents some hexadecimal value. The password is `egb439123`.
-3. Run `python3 operate.py`.
-4. If you have connection issues, ensure that the IP address set in `operate.py` parser arguments matches that displayed on the Pi's LCD screen, and the port is correctly set to `8080`. If you have connection issues, ensure that the IP address set in `operate.py` parser arguments matches that displayed on the Pi's LCD screen, and the port is correctly set to `8080`. You can also test the connection by opening a browser and navigating to `http://192.168.50.1:8080` - it should present you with a control interface for the Penguin Pi.
+3. Run `python3 deploy.py`.
+4. If you have connection issues, ensure that the IP address set in `deploy.py` parser arguments matches that displayed on the Pi's LCD screen, and the port is correctly set to `8080`. You can also test the connection by opening a browser and navigating to `http://192.168.50.1:8080` - it should present you with a control interface for the Penguin Pi.
