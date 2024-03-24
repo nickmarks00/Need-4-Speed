@@ -53,7 +53,7 @@ class Operate:
             self.image_id = 0
         else:
             f = open(os.path.join(self.folder, "config.txt"), "r")
-            self.image_id = int(f.readline())
+            self.image_id = int(f.readline()) + 1
             f.close()
         print(f"Using image ID {self.image_id}...")
 
@@ -139,7 +139,7 @@ if __name__ == "__main__":
                     if (
                         operate.mode == "bare"
                     ):  # just log the states, I'll calculate rewards later
-                        vals = (operate.image_id, l_vel, r_vel)
+                        vals = (operate.image_id, l_vel, r_vel, x, y, theta)
                         writer.writerow(vals)
                     else:  # handle reward calculation and plotting
                         rewards = operate.rewards.reward(
