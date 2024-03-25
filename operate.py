@@ -123,7 +123,7 @@ if __name__ == "__main__":
 
     """
     Operate.csv format
-    | Time steps | Left vel | Right vel | Total reward | Vel smooth | Pose smooth | Track vis |
+    | Time steps | Left vel | Right vel | X pos | Y pos | Theta | Total reward | Vel smooth | Pose smooth | Track vis |
     """
 
     with open(os.path.join(operate.folder, "log.csv"), operate.csv_mode) as f:
@@ -145,7 +145,7 @@ if __name__ == "__main__":
                         rewards = operate.rewards.reward(
                             l_vel, r_vel, x, y, theta, operate.img
                         )
-                        vals = (operate.image_id, l_vel, r_vel, *rewards)
+                        vals = (operate.image_id, l_vel, r_vel, x, y, theta, *rewards)
                         writer.writerow(vals)
                         f.flush()
                         if operate.image_id > 1:
