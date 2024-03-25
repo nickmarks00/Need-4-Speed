@@ -1,6 +1,5 @@
 # Package imports
 import os
-import numpy as np
 from d3rlpy.algos import IQLConfig
 from d3rlpy.dataset import MDPDataset
 import torch
@@ -10,19 +9,19 @@ from utils.make_dataset import DatasetFactory
 from utils.file_handler import next_path
 
 
-PATH_TO_DATASET = "/home/chumbers/Downloads/"
-
-
 def main() -> None:
+
+    path_to_dataset = os.path.join(os.getcwd(), "output")
+
     experiment_name = "iql"
 
     device = "cuda:0" if torch.cuda.is_available() else None
 
-    raw_dataset = DatasetFactory(PATH_TO_DATASET)
+    raw_dataset = DatasetFactory(path_to_dataset)
 
     dataset = MDPDataset(
         observations=raw_dataset.observations,
-        actions=np.random.random((100, 2)),
+        actions=raw_dataset.actions,
         rewards=raw_dataset.rewards,
         terminals=raw_dataset.terminals,
         # transition_picker=FrameStackTransitionPicker(n_frames=4),
@@ -35,11 +34,14 @@ def main() -> None:
     print("Training IQL...")
     print("=========================================")
     # Train the model
+
+    epochs = 250
+    n_steps_per_epoch = 250
     iql.fit(
         dataset,
-        n_steps=20,
-        n_steps_per_epoch=5,
-        save_interval=2,
+        n_steps=n_steps_per_epoch * epochs,
+        n_steps_per_epoch=n_steps_per_epoch,
+        save_interval=25,
         experiment_name=experiment_name,
     )
 
