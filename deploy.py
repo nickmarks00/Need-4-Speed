@@ -25,7 +25,7 @@ class Operate:
 
         path_to_model = fetch_model_path()
         print(f"\nDeploying model {path_to_model}...\n")
-        self.loaded_model = d3rlpy.load_learnable(path_to_model, device=self.device)
+        self.model = d3rlpy.load_learnable(path_to_model, device=self.device)
 
     def take_pic(self):
         img = self.pibot.get_image()
@@ -34,7 +34,7 @@ class Operate:
         self.img = np.expand_dims(self.img, axis=0)
 
     def control(self):
-        predictions = self.loaded_model.predict(self.img)
+        predictions = self.model.predict(self.img)
         print(predictions)
         predictions = predictions[0]
         drive = [0, 0]
