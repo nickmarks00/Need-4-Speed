@@ -3,6 +3,7 @@ import numpy as np
 import sys
 import time
 import d3rlpy
+import torch
 
 # Local imports
 from utils.penguin_pi import PenguinPi  # access the robot
@@ -12,10 +13,9 @@ from utils.globals import DIMS
 
 class Operate:
     def __init__(self, args):
-
         self.pibot = PenguinPi(args.ip, args.port)
+        self.device = "cuda:0" if torch.cuda.is_available() else None
 
-        self.image_id = 0
         self.w = DIMS["width"]
         self.h = DIMS["height"]
         self.c = DIMS["channels"]
@@ -25,11 +25,17 @@ class Operate:
 
         path_to_model = fetch_model_path()
         print(f"\nDeploying model {path_to_model}...\n")
-        self.loaded_model = d3rlpy.load_learnable(path_to_model)
+        self.loaded_model = d3rlpy.load_learnable(path_to_model, device=self.device)
 
-    # wheel control
+    def take_pic(self):
+        img = self.pibot.get_image()
+        self.img = img[240 - self.h :, :, :]
+        self.img = np.array(self.img, dtype=np.uint8).transpose(2, 1, 0)
+        self.img = np.expand_dims(self.img, axis=0)
+
     def control(self):
         predictions = self.loaded_model.predict(self.img)
+        print(predictions)
         predictions = predictions[0]
         drive = [0, 0]
         for idx, prediction in enumerate(predictions):
@@ -38,12 +44,6 @@ class Operate:
         speeds = self.pibot.predict_velocity(drive[0], drive[1])
         print(speeds)
         time.sleep(0.5)
-
-    # camera control
-    def take_pic(self):
-        img = self.pibot.get_image()
-        self.img = np.array(img, dtype=np.uint8).transpose(2, 1, 0)
-        self.img = np.expand_dims(self.img, axis=0)
 
 
 if __name__ == "__main__":

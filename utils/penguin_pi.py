@@ -43,10 +43,8 @@ class PenguinPi:
                 + str(time)
             )
 
-    def predict_velocity(self, command, tick=20, turning_tick=5, time=0):
-        l_vel = command[0] * tick - command[1] * turning_tick
-        r_vel = command[0] * tick + command[1] * turning_tick
-        self.wheel_vel = [l_vel, r_vel]
+    def predict_velocity(self, l_vel, r_vel, time=0.25):
+        self.wheel_vel = [l_vel, l_vel]
         if time == 0:
             requests.get(
                 f"http://{self.ip}:{self.port}/robot/set/velocity?value="
