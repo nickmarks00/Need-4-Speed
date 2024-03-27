@@ -2,7 +2,7 @@ import numpy as np
 import math
 import statistics
 from typing import Tuple
-
+import cv2
 
 class RewardHandler:
     """
@@ -40,20 +40,33 @@ class RewardHandler:
         l_vel_avg = statistics.fmean(self.smoothness_buffer[0])
         r_vel_avg = statistics.fmean(self.smoothness_buffer[1])
 
-        return self.weights["smoothness"] * math.exp(
-            -1 * (((l_vel - l_vel_avg) / 10) ** 2 + ((r_vel - r_vel_avg) / 10) ** 2)
-        )
+        # Calculate the velocity differences and scale them
+        l_vel_diff_scaled = (l_vel - l_vel_avg) / 10
+        r_vel_diff_scaled = (r_vel - r_vel_avg) / 10
+
+        # Use tanh to achieve a smooth transition. 
+        smoothness_score = (math.tanh(-abs(l_vel_diff_scaled)) + 1) / 2 + (math.tanh(-abs(r_vel_diff_scaled)) + 1) / 2
+
+        # Apply the weight. You might adjust this formula based on your specific needs.
+        return self.weights["smoothness"] * smoothness_score
 
     def reward_pose(self, x: float, y: float, theta: float) -> float:
+
         x_avg = statistics.fmean(self.pose_buffer[0])
         y_avg = statistics.fmean(self.pose_buffer[1])
         theta_avg = statistics.fmean(self.pose_buffer[2])
 
-        reward = self.weights["pose_pos"] * (
-            math.exp(-1 * (1000 * (x - x_avg) ** 2 + 1000 * (y - y_avg) ** 2))
-        ) + self.weights["pose_theta"] * math.exp(-1 * 1000 * (theta - theta_avg) ** 2)
+        pos_deviation = np.sqrt((x - x_avg) ** 2 + (y - y_avg) ** 2)
+        theta_deviation = abs(theta - theta_avg)
+
+        # Use tanh to smooth the reward decrease for deviations
+        reward_pos = (np.tanh(-pos_deviation) + 1) / 2
+        reward_theta = (np.tanh(-theta_deviation) + 1) / 2
+        reward = self.weights["pose_pos"] * reward_pos + self.weights["pose_theta"] * reward_theta
+
         return reward
 
+    
     def reward_track(self, img: np.ndarray) -> float:
         """
         Reward for keeping as much of the track in view as possible
@@ -70,7 +83,38 @@ class RewardHandler:
             return self.weights["track"] * math.exp(100 * (ratio) ** 3)
         except ZeroDivisionError:
             return 0
+    
+    
+    """
+    def reward_track(self, img: np.ndarray) -> float:
+            
+            Calculates the reward for keeping as much of the track in view as possible,
+            
+            # Define thresholds 
+            norm_threshold = 150
+            color_diff_threshold = 10
+            gray_patch_size_threshold = 50  
+            
+            # Calculate norms and color differences
+            norms = np.linalg.norm(img, axis=2)
+            color_diffs = np.max(img, axis=2) - np.min(img, axis=2)
+            
+            # Create a binary mask for gray pixels based on the criteria
+            gray_pixels_mask = (norms < norm_threshold) & (color_diffs < color_diff_threshold)
+            binary_mask = np.uint8(gray_pixels_mask) * 255
 
+            # Perform connected components analysis to filter out small components
+            num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
+            
+            # Count pixels in components larger than the threshold
+            large_components_mask = np.isin(labels, np.where(stats[:, cv2.CC_STAT_AREA] > gray_patch_size_threshold)[0])
+            grey_pixels = np.sum(large_components_mask)
+            
+                ratio = grey_pixels / (img.shape[0] * img.shape[1])
+                return self.weights["track"] * math.exp(100 * (ratio) ** 3)
+            except ZeroDivisionError:
+                return 0
+    """
 
 class Buffer:
     """
