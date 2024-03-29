@@ -2,7 +2,7 @@ import numpy as np
 import math
 import statistics
 from typing import Tuple
-import cv2
+
 
 class RewardHandler:
     """
@@ -25,8 +25,10 @@ class RewardHandler:
     def reward(
         self, l_vel: int, r_vel: int, x: float, y: float, theta: float, img: np.ndarray
     ) -> Tuple[float, float, float, float]:
-        reward_smooth = self.reward_smoothness(l_vel, r_vel)
-        reward_pose = self.reward_pose(x, y, theta)
+        # reward_smooth = self.reward_smoothness(l_vel, r_vel)
+        # reward_pose = self.reward_pose(x, y, theta)
+        reward_smooth = 0
+        reward_pose = 0
         reward_track = self.reward_track(img)
         return (
             reward_smooth + reward_pose + reward_track,
@@ -44,8 +46,10 @@ class RewardHandler:
         l_vel_diff_scaled = (l_vel - l_vel_avg) / 10
         r_vel_diff_scaled = (r_vel - r_vel_avg) / 10
 
-        # Use tanh to achieve a smooth transition. 
-        smoothness_score = (math.tanh(-abs(l_vel_diff_scaled)) + 1) / 2 + (math.tanh(-abs(r_vel_diff_scaled)) + 1) / 2
+        # Use tanh to achieve a smooth transition.
+        smoothness_score = (math.tanh(-abs(l_vel_diff_scaled)) + 1) / 2 + (
+            math.tanh(-abs(r_vel_diff_scaled)) + 1
+        ) / 2
 
         # Apply the weight. You might adjust this formula based on your specific needs.
         return self.weights["smoothness"] * smoothness_score
@@ -62,11 +66,13 @@ class RewardHandler:
         # Use tanh to smooth the reward decrease for deviations
         reward_pos = (np.tanh(-pos_deviation) + 1) / 2
         reward_theta = (np.tanh(-theta_deviation) + 1) / 2
-        reward = self.weights["pose_pos"] * reward_pos + self.weights["pose_theta"] * reward_theta
+        reward = (
+            self.weights["pose_pos"] * reward_pos
+            + self.weights["pose_theta"] * reward_theta
+        )
 
         return reward
 
-    
     def reward_track(self, img: np.ndarray) -> float:
         """
         Reward for keeping as much of the track in view as possible
@@ -83,8 +89,7 @@ class RewardHandler:
             return self.weights["track"] * math.exp(100 * (ratio) ** 3)
         except ZeroDivisionError:
             return 0
-    
-    
+
     """
     def reward_track(self, img: np.ndarray) -> float:
             
@@ -115,6 +120,7 @@ class RewardHandler:
             except ZeroDivisionError:
                 return 0
     """
+
 
 class Buffer:
     """
