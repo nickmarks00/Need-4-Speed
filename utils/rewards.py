@@ -27,9 +27,11 @@ class RewardHandler:
     ) -> Tuple[float, float, float, float]:
         # reward_smooth = self.reward_smoothness(l_vel, r_vel)
         # reward_pose = self.reward_pose(x, y, theta)
+        reward_track = self.reward_track(img)
+
         reward_smooth = 0
         reward_pose = 0
-        reward_track = self.reward_track(img)
+        # reward_track = 0
         return (
             reward_smooth + reward_pose + reward_track,
             reward_smooth,
