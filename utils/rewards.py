@@ -87,8 +87,9 @@ class RewardHandler:
                 if np.linalg.norm(pixel) < 150 and np.max(pixel) - np.min(pixel) < 10:
                     grey_pixels += 1
         try:
-            ratio = grey_pixels / (img.shape[0] * img.shape[1] * img.shape[2])
-            return self.weights["track"] * math.exp(100 * (ratio) ** 3)
+            # Ratio of grey pixels -> grey_pixels / hxw of the image             
+            ratio = grey_pixels / (img.shape[0] * img.shape[1])
+            return self.weights["track"] * math.tanh(100 * (ratio) ** 3)
         except ZeroDivisionError:
             return 0
 
