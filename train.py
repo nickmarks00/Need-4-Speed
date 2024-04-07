@@ -1,6 +1,6 @@
 # Package imports
 import os
-from d3rlpy.algos import IQLConfig
+from d3rlpy.algos import IQLConfig 
 from d3rlpy.dataset import MDPDataset
 from d3rlpy.preprocessing import (
     StandardObservationScaler,
@@ -46,8 +46,8 @@ def main() -> None:
     print("Training IQL...")
     print("=========================================\n")
 
-    epochs = 1
-    n_steps_per_epoch = 50
+    epochs = 55
+    n_steps_per_epoch = 250
     experiment_name = f"iql-straight-{epochs}epochs-{n_steps_per_epoch}steps"
     iql.fit(
         dataset,
