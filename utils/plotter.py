@@ -43,10 +43,10 @@ class Plotter:
 
         t_steps = reward_df[0]
 
-        self.ax.plot(t_steps, reward_df[7], "c")
-        self.ax.plot(t_steps, reward_df[8], "r")
-        self.ax.plot(t_steps, reward_df[9], "g")
-        self.ax.plot(t_steps, reward_df[10], "b")
+        self.ax.plot(t_steps, reward_df[6], "c")
+        self.ax.plot(t_steps, reward_df[7], "r")
+        self.ax.plot(t_steps, reward_df[8], "g")
+        self.ax.plot(t_steps, reward_df[9], "b")
         self.ax.legend(
             ["Total reward", "Velocity smoothing", "Pose smoothing", "Track visibility"]
         )
