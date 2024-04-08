@@ -12,7 +12,7 @@ import time
 import autokeras as ak
 from PIL import Image, ImageEnhance
 # import matplotlib.pyplot as plt
-import torchvision
+from torchvision import transforms
 
 # import utility functions
 sys.path.insert(0, "{}/utility".format(os.getcwd()))
@@ -71,7 +71,7 @@ class Operate:
 
         self.bg = pygame.image.load('pics/gui_mask.jpg')
 
-        self.loaded_model = load_model("model_autokeras_two_wheels_6thMarCropped180SaturationSharpness", custom_objects=ak.CUSTOM_OBJECTS) #make sure this model autokeras folder is in the same dir as this ipynb file
+        self.loaded_model = load_model("model_autokeras_26thMar_300EpochsRobustPicNorm", custom_objects=ak.CUSTOM_OBJECTS) #make sure this model autokeras folder is in the same dir as this ipynb file
         
     # wheel control
     def control(self):       
@@ -81,7 +81,7 @@ class Operate:
         #     predictions[1] = predictions[0]
         drive = [0, 0]
         for idx, prediction in enumerate(predictions):
-            drive[idx] = int(((40 * prediction) + 7)/1.3) + 10
+            drive[idx] = int(((22 * prediction) + 9)/1.3) + 10
             
         if args.play_data:
             lv, rv = self.pibot.set_velocity()            
@@ -96,18 +96,30 @@ class Operate:
     # camera control
     def take_pic(self):
         img = self.pibot.get_image()
-        print(type(img))
-        img = Image.fromarray(img)
+        # print(type(img))
         
-        contrast_enhancer = ImageEnhance.Contrast(img)
-        img = contrast_enhancer.enhance(3)
-        sharpness_enhancer = ImageEnhance.Sharpness(img)
-        img = sharpness_enhancer.enhance(4)
+        '''# mean_dataset = [0.47355583, 0.4211238, 0.37193869]
+
+        # std_dataset = [0.22458812, 0.22670675, 0.21543671]
+
+        # transform_tensor = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean= mean_dataset,std= std_dataset),])
         
-        img = np.asarray(img).astype('float32') /255.0
+        # img = np.asarray(img).astype('float32')
+        # print("\n\n\nimage shape: ", img.shape)
+        # img = img[180:240][0:320]s
         
+        # img = transform_tensor(img)
+        # print("\n\n\nimage shape after transform: ", img.shape)
+        
+        # self.img = np.array([img.reshape(3,60,320)])'''
+        
+        img = np.asarray(img).astype('float32') / 255.0
+        # print("\n\n\nimage shape: ", img.shape)
         img = img[180:240][0:320]
-        # img = img[0:320][150:260]
+        
+        # img = transform_tensor(img)
+        # print("\n\n\nimage shape after transform: ", img.shape)
+        
         self.img = np.array([img.reshape(60,320,3)])
         if not self.data is None:
             self.data.write_image(self.img)
