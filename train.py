@@ -1,6 +1,6 @@
 # Package imports
 import os
-from d3rlpy.algos import CQLConfig #IQLConfig
+from d3rlpy.algos import IQLConfig
 from d3rlpy.dataset import MDPDataset
 from d3rlpy.preprocessing import (
     StandardObservationScaler,
@@ -35,21 +35,12 @@ def main() -> None:
     action_scaler = MinMaxActionScaler()
     reward_scaler = StandardRewardScaler()
 
-    """
     iql = IQLConfig(
         observation_scaler=observation_scaler,
         action_scaler=action_scaler,
         reward_scaler=reward_scaler,
     ).create(device=device)
     iql.build_with_dataset(dataset)
-    """
-
-    cql = CQLConfig(
-        observation_scaler=observation_scaler,
-        action_scaler=action_scaler,
-        reward_scaler=reward_scaler,
-    ).create(device=device)
-    cql.build_with_dataset(dataset)
 
     print("\n=========================================")
     print("Training IQL...")
@@ -58,16 +49,8 @@ def main() -> None:
     epochs = 50
     n_steps_per_epoch = 250
     experiment_name = f"iql-straight-{epochs}epochs-{n_steps_per_epoch}steps"
-    """
+
     iql.fit(
-        dataset,
-        n_steps=n_steps_per_epoch * epochs,
-        n_steps_per_epoch=n_steps_per_epoch,
-        save_interval=25,
-        experiment_name=experiment_name,
-    )
-    """
-    cql.fit(
         dataset,
         n_steps=n_steps_per_epoch * epochs,
         n_steps_per_epoch=n_steps_per_epoch,
@@ -81,12 +64,7 @@ def main() -> None:
         print("\nCreated models/ directory")
 
     model_path = next_path("models/iql-%s.d3")
-    # policy_path = next_path("models/iql_sp-%s.pt")
-    # p_model_path = next_path("models/iql_sm-%s.pt")
-    # iql.save(model_path)
-    cql.save(model_path)
-    # iql.save_policy(policy_path)
-    # iql.save_model(p_model_path)
+    iql.save(model_path)
     print(f"\nModel saved to {model_path}")
 
 
