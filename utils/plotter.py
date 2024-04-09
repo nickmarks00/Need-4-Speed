@@ -1,56 +1,69 @@
-"""
-Creates plots for the training of a given model. You will need to specify as a runtime argument the path to the log folder, e.g. demos/d3rlpy_logs/<model-name>_<code>
-"""
-
-import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib import style
 import os
+
+import matplotlib.pyplot as plt
+
+import numpy as np
+import pandas as pd
+from matplotlib import style
 
 
 class Plotter:
     def __init__(self) -> None:
         style.use("fivethirtyeight")
         self.dpi = 96
-        self.fig = plt.figure(figsize=(700 / self.dpi, 700 / self.dpi), dpi=self.dpi)
-        self.ax = self.fig.add_subplot(1, 1, 1)
-        self.xs = []
-        self.ys = []
+        self.reward_fig = plt.figure(
+            figsize=(700 / self.dpi, 700 / self.dpi), dpi=self.dpi
+        )
+        self.reward_ax = self.reward_fig.add_subplot(1, 1, 1)
+        self.action_fig = plt.figure()
+        self.action_ax = self.action_fig.add_subplot(1, 1, 1)
 
-    def plot_training(self, dir: str):
-        # Load the enviroment data AKA the reward
-        env_df = pd.read_csv(dir + "/environment.csv", header=None)
-
-        # Load the loss data
-        loss_df = pd.read_csv(dir + "/loss.csv", header=None)
-
-        # Plot the loss data
-        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
-        ax1.plot(env_df[0], env_df[2])
-        ax1.set_title("Reward")
-        ax1.set_xlabel("Epoch")
-        ax1.set_ylabel("Reward")
-        ax2.plot(loss_df[0], loss_df[2])
-        ax2.set_title("Loss")
-        ax2.set_xlabel("Epoch")
-        ax2.set_ylabel("Loss")
-        f.savefig(dir + "/results.png")
-
-    def plot_reward(self):
+    def plot_reward(self) -> None:
         reward_df = pd.read_csv(
             os.path.join(os.getcwd(), "output/log.csv"), header=None
         )
 
         t_steps = reward_df[0]
 
-        self.ax.plot(t_steps, reward_df[6], "c")
-        self.ax.plot(t_steps, reward_df[7], "r")
-        self.ax.plot(t_steps, reward_df[8], "g")
-        self.ax.plot(t_steps, reward_df[9], "b")
-        self.ax.legend(
+        self.reward_ax.plot(t_steps, reward_df[6], "c")
+        self.reward_ax.plot(t_steps, reward_df[7], "r")
+        self.reward_ax.plot(t_steps, reward_df[8], "g")
+        self.reward_ax.plot(t_steps, reward_df[9], "b")
+        self.reward_ax.legend(
             ["Total reward", "Velocity smoothing", "Pose smoothing", "Track visibility"]
         )
-        self.ax.set_title("Live reward")
-        self.ax.set_xlabel("Time steps")
-        self.ax.set_ylabel("Reward")
-        self.fig.savefig("output/reward.png", dpi=self.dpi)
+        self.reward_ax.set_title("Live reward")
+        self.reward_ax.set_xlabel("Time steps")
+        self.reward_ax.set_ylabel("Reward")
+        self.reward_fig.savefig("output/reward.png", dpi=self.dpi, bbox_inches="tight")
+
+    def plot_action_distribution(self) -> None:
+        """
+        Plots the distribution of actions received during operation (i.e. velocities)
+        """
+        df = pd.read_csv(os.path.join(os.getcwd(), "output/log.csv"), header=None)
+
+        l_vel_arr, r_vel_arr = df[1].to_numpy(), df[2].to_numpy()
+        l_vel_arr = [
+            l_vel_arr[i] for i in range(len(l_vel_arr)) if abs(l_vel_arr[i]) < 100
+        ]
+        r_vel_arr = [
+            r_vel_arr[i] for i in range(len(r_vel_arr)) if abs(r_vel_arr[i]) < 100
+        ]
+        self.action_ax.hist(
+            l_vel_arr, np.histogram_bin_edges(l_vel_arr, bins=50)
+        )  # histogram of right wheel velocities
+        self.action_ax.hist(
+            r_vel_arr, np.histogram_bin_edges(r_vel_arr, bins=50)
+        )  # histogram of right wheel velocities
+
+        self.action_ax.legend(["Left Wheel Velocities", "Right Wheel Velocities"])
+        self.action_ax.set_title("Action Distribution")
+        self.action_ax.set_xlabel("Velocity Bins")
+        self.action_ax.set_ylabel("Frequency")
+        self.action_fig.savefig("output/action_dist.png", bbox_inches="tight")
+
+
+if __name__ == "__main__":
+    plotter = Plotter()
+    plotter.plot_action_distribution()

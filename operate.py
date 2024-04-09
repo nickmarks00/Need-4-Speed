@@ -1,15 +1,16 @@
-import numpy as np
-import cv2
+import csv
 import os
 import shutil
 import sys
-import csv
+
+import cv2
+import numpy as np
 import pygame  # python package for GUI
+from utils.globals import DIMS
 
 from utils.penguin_pi import PenguinPi  # access the robot
-from utils.rewards import RewardHandler
 from utils.plotter import Plotter
-from utils.globals import DIMS
+from utils.rewards import RewardHandler
 
 
 class Operate:
@@ -74,7 +75,7 @@ class Operate:
     def exit(self):
         print("\nExiting program...")
         pygame.quit()
-        with open(os.path.join(self.folder, "config.txt"), "w") as f:
+        with open(os.path.join(self.folder, "config.txt"), "w", encoding="utf-8") as f:
             f.write(str(self.image_id))
         self.pibot.stop()
         sys.exit()
@@ -117,7 +118,7 @@ if __name__ == "__main__":
 
     operate = Operate(args)
 
-    reset = operate.pibot.resetEncoder()
+    RESET = operate.pibot.resetEncoder()
 
     motor_speeds = []
 
@@ -126,7 +127,9 @@ if __name__ == "__main__":
     | Time steps | Left vel | Right vel | X pos | Y pos | Theta | Total reward | Vel smooth | Pose smooth | Track vis |
     """
 
-    with open(os.path.join(operate.folder, "log.csv"), operate.csv_mode) as f:
+    with open(
+        os.path.join(operate.folder, "log.csv"), operate.csv_mode, encoding="utf-8"
+    ) as f:
         writer = csv.writer(f, delimiter=",")
         while True:
             try:
@@ -152,7 +155,9 @@ if __name__ == "__main__":
                             operate.plotter.plot_reward()
                             bg = pygame.image.load(operate.reward_plot)
                             canvas.blit(bg, (0, 0))
-                reset = operate.pibot.resetEncoder()
+                RESET = operate.pibot.resetEncoder()
                 pygame.display.update()
             except KeyboardInterrupt:
                 operate.exit()
+                print("Plotting action distribution...\n")
+                operate.plotter.plot_action_distribution()
