@@ -85,6 +85,8 @@ class PenguinPi:
     def getEncoders(self):
         resp = requests.get("{}/robot/get/encoder".format(self.endpoint), timeout=1)
         left_enc, right_enc = resp.text.split(",")
+        if abs(int(left_enc)) > 100 or abs(int(right_enc)) > 100:
+            raise ValueError("Received extremely large encoder value, ignoring...")
         return int(left_enc), int(right_enc)
 
     def get_pose(self):

@@ -1,14 +1,15 @@
 # Package imports
+import glob
 import os
+
 import numpy as np
 import pandas as pd
 from PIL import Image
-import glob
 from tqdm import tqdm
+from utils.globals import DIMS
 
 # Local imports
 from utils.rewards import RewardHandler
-from utils.globals import DIMS
 
 
 class DatasetFactory:
@@ -17,6 +18,9 @@ class DatasetFactory:
         self.w = DIMS["width"]
         self.h = DIMS["height"]
         self.c = DIMS["channels"]
+        self.rewards = np.zeros(1)
+        self.actions = np.zeros(1)
+        self.observations = np.zeros(1)
         self.create()
 
     def create(self) -> None:
@@ -32,12 +36,12 @@ class DatasetFactory:
 
         print("\nReading actions and rewards...")
         self.actions: np.ndarray = df[[1, 2]].to_numpy()
-        self.normalise_actions(axis=0)
+        self.process_actions(axis=0)
 
         # ======= IMPORTANT ======= #
-        print("Checking if rewards are present...")
+        print("\nChecking if rewards are present...")
         if len(df.columns) == 6:
-            print("\nNo rewards found. Calculating rewards...")
+            print("No rewards found. Calculating rewards...")
             self.calculate_reward()
         # ======= IMPORTANT ======= #
         else:
@@ -91,7 +95,7 @@ class DatasetFactory:
         csv_path = os.path.join(self.path_to_dataset, "log.csv")
         df = pd.read_csv(csv_path, header=None)
 
-        print("Found {} rows in dataset".format(len(df)))
+        print(f"Found {len(df)} rows in dataset")
 
         reward_vec = []
         handler = RewardHandler()
@@ -109,9 +113,40 @@ class DatasetFactory:
         df.to_csv(csv_path, header=False, index=False)
 
     # Continuous action space must be between [-1, 1]
-    def normalise_actions(self, axis=None) -> None:
+    def process_actions(self, axis=None) -> None:
+        """Applies necessary pre-processing to actions
+        1. Cuts out erroneous actions (i.e. ones with large absolute value)
+        2. Normalise vector
+
+        :axis: the axis with respect to which the max/min should be taken
+        :returns None
+        """
+        print("\nProcessing actions...")
+
+        i = 0
+        bound = 100
+        while i < self.actions.shape[0]:
+            if abs(self.actions[i, 0]) >= bound or abs(self.actions[i, 1]) >= bound:
+                self.actions = np.delete(
+                    self.actions, i, axis=0
+                )  # delete the row from the action table
+                try:
+                    os.remove(
+                        os.path.join(self.path_to_dataset, f"images/img_{i}.png")
+                    )  # delete the corresponding image
+                except FileNotFoundError:
+                    print("Image already deleted...")
+                print(
+                    f"Successfully deleted action/observation pair at timestep {i+1} ✅"
+                )
+            i += 1
+
         amax = self.actions.max(axis)
         amin = self.actions.min(axis)
+
+        assert amax[0] < bound and amax[1] < bound
+        assert amax[0] > -1 * bound and amax[1] > -1 * bound
+
         abs_max = np.where(-amin > amax, amin, amax)
 
         self.actions = self.actions / abs_max

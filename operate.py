@@ -124,7 +124,11 @@ if __name__ == "__main__":
 
     """
     Operate.csv format
-    | Time steps | Left vel | Right vel | X pos | Y pos | Theta | Total reward | Vel smooth | Pose smooth | Track vis |
+    [0] = Time steps
+    [1]-[2] = Left, right wheel velocities
+    [3]-[5] = x, y and theta
+    [6] = Total reward
+    [7]-[9] = Velocity smoothness, pose smoothness, track visibility
     """
 
     with open(
@@ -136,8 +140,14 @@ if __name__ == "__main__":
                 operate.update_keyboard()
                 operate.control()
                 if operate.command["motion"] != [0, 0]:  # actual  input given
+                    try:
+                        l_vel, r_vel = operate.pibot.getEncoders()
+                    except (
+                        ValueError
+                    ) as e:  # safeguards against buggy encoder reading from PPi
+                        print(e)
+                        continue
                     operate.take_pic()
-                    l_vel, r_vel = operate.pibot.getEncoders()
                     x, y, theta = operate.pibot.get_pose()
                     if (
                         operate.mode == "bare"
