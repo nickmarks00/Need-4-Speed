@@ -25,13 +25,13 @@ class RewardHandler:
     def reward(
         self, l_vel: int, r_vel: int, x: float, y: float, theta: float, img: np.ndarray
     ) -> Tuple[float, float, float, float]:
-        # reward_smooth = self.reward_smoothness(l_vel, r_vel)
+        reward_smooth = self.reward_smoothness(l_vel, r_vel)
         # reward_pose = self.reward_pose(x, y, theta)
-        reward_track = self.reward_track(img)
+        # reward_track = self.reward_track(img)
 
-        reward_smooth = 0
+        # reward_smooth = 0
         reward_pose = 0
-        # reward_track = 0
+        reward_track = 0
         return (
             reward_smooth + reward_pose + reward_track,
             reward_smooth,
@@ -48,13 +48,12 @@ class RewardHandler:
         l_vel_diff_scaled = (l_vel - l_vel_avg) / 10
         r_vel_diff_scaled = (r_vel - r_vel_avg) / 10
 
-        # Use tanh to achieve a smooth transition.
-        smoothness_score = (math.tanh(-abs(l_vel_diff_scaled)) + 1) / 2 + (
-            math.tanh(-abs(r_vel_diff_scaled)) + 1
-        ) / 2
+        # Use tanh to achieve a smooth transition, scale to [0, 1]
+        smoothness_score = (math.tanh(-abs(l_vel_diff_scaled)) + 1) / 2 + \
+                           (math.tanh(-abs(r_vel_diff_scaled)) + 1) / 2
 
-        # Apply the weight. You might adjust this formula based on your specific needs.
-        return self.weights["smoothness"] * smoothness_score
+        # Apply the weight and normalize by 2 since two components contribute equally
+        return self.weights["smoothness"] * (smoothness_score / 2)
 
     def reward_pose(self, x: float, y: float, theta: float) -> float:
 
@@ -92,38 +91,6 @@ class RewardHandler:
             return self.weights["track"] * math.tanh(100 * (ratio) ** 3)
         except ZeroDivisionError:
             return 0
-
-    """
-    def reward_track(self, img: np.ndarray) -> float:
-            
-            Calculates the reward for keeping as much of the track in view as possible,
-            
-            # Define thresholds 
-            norm_threshold = 150
-            color_diff_threshold = 10
-            gray_patch_size_threshold = 50  
-            
-            # Calculate norms and color differences
-            norms = np.linalg.norm(img, axis=2)
-            color_diffs = np.max(img, axis=2) - np.min(img, axis=2)
-            
-            # Create a binary mask for gray pixels based on the criteria
-            gray_pixels_mask = (norms < norm_threshold) & (color_diffs < color_diff_threshold)
-            binary_mask = np.uint8(gray_pixels_mask) * 255
-
-            # Perform connected components analysis to filter out small components
-            num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
-            
-            # Count pixels in components larger than the threshold
-            large_components_mask = np.isin(labels, np.where(stats[:, cv2.CC_STAT_AREA] > gray_patch_size_threshold)[0])
-            grey_pixels = np.sum(large_components_mask)
-            
-                ratio = grey_pixels / (img.shape[0] * img.shape[1])
-                return self.weights["track"] * math.exp(100 * (ratio) ** 3)
-            except ZeroDivisionError:
-                return 0
-    """
-
 
 class Buffer:
     """
