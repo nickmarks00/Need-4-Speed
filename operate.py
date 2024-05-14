@@ -53,10 +53,14 @@ class Operate:
         if self.mode == "one_shot":
             self.image_id = 0
         else:
-            f = open(os.path.join(self.folder, "config.txt"), "r")
-            self.image_id = int(f.readline()) + 1
-            f.close()
-        print(f"Using image ID {self.image_id}...")
+            try:
+                f = open(os.path.join(self.folder, "config.txt"), "r")
+                self.image_id = int(f.readline()) + 1
+                f.close()
+                print(f"Using image ID {self.image_id}...")
+            except FileNotFoundError:
+                print("No config.txt found, starting at index 0")
+                self.image_id = 0
 
         self.img = np.zeros([self.h, self.w, self.c], dtype=np.uint8)
 
@@ -70,7 +74,6 @@ class Operate:
         image = self.pibot.get_image()
         self.img = image[240 - self.h :, :, :]  # crop to 120x320x3
         cv2.imwrite(f_, self.img)
-        self.image_id += 1
 
     def exit(self):
         print("\nExiting program...")
@@ -148,6 +151,8 @@ if __name__ == "__main__":
                         print(e)
                         continue
                     operate.take_pic()
+                    # cv2.imshow("Original", operate.img)
+                    # cv2.waitKey(0)
                     x, y, theta = operate.pibot.get_pose()
                     if (
                         operate.mode == "bare"
@@ -165,6 +170,7 @@ if __name__ == "__main__":
                             operate.plotter.plot_reward()
                             bg = pygame.image.load(operate.reward_plot)
                             canvas.blit(bg, (0, 0))
+                    operate.image_id += 1
                 RESET = operate.pibot.resetEncoder()
                 pygame.display.update()
             except KeyboardInterrupt:

@@ -1,7 +1,11 @@
-import numpy as np
 import math
 import statistics
 from typing import Tuple
+
+import cv2
+
+import numpy as np
+from PIL import Image
 
 
 class RewardHandler:
@@ -21,17 +25,18 @@ class RewardHandler:
             "pose_theta": 0.1,
             "track": 0.1,
         }
+        self.idx = 0
 
     def reward(
         self, l_vel: int, r_vel: int, x: float, y: float, theta: float, img: np.ndarray
     ) -> Tuple[float, float, float, float]:
-        reward_smooth = self.reward_smoothness(l_vel, r_vel)
+        # reward_smooth = self.reward_smoothness(l_vel, r_vel)
         # reward_pose = self.reward_pose(x, y, theta)
-        # reward_track = self.reward_track(img)
+        reward_track = self.reward_track(img)
 
-        # reward_smooth = 0
+        reward_smooth = 0
         reward_pose = 0
-        reward_track = 0
+        # reward_track = 0
         return (
             reward_smooth + reward_pose + reward_track,
             reward_smooth,
@@ -49,8 +54,9 @@ class RewardHandler:
         r_vel_diff_scaled = (r_vel - r_vel_avg) / 10
 
         # Use tanh to achieve a smooth transition, scale to [0, 1]
-        smoothness_score = (math.tanh(-abs(l_vel_diff_scaled)) + 1) / 2 + \
-                           (math.tanh(-abs(r_vel_diff_scaled)) + 1) / 2
+        smoothness_score = (math.tanh(-abs(l_vel_diff_scaled)) + 1) / 2 + (
+            math.tanh(-abs(r_vel_diff_scaled)) + 1
+        ) / 2
 
         # Apply the weight and normalize by 2 since two components contribute equally
         return self.weights["smoothness"] * (smoothness_score / 2)
@@ -83,14 +89,21 @@ class RewardHandler:
         for i in range(img.shape[0]):
             for j in range(img.shape[1]):
                 pixel = img[i, j]
-                if np.linalg.norm(pixel) < 150 and np.max(pixel) - np.min(pixel) < 10:
+                if np.linalg.norm(pixel) < 28 and np.max(pixel) - np.min(pixel) < 8:
                     grey_pixels += 1
+        #             img[i, j] = 0
+        #         else:
+        #             img[i, j] = 255
+        # image = Image.fromarray(img)
+        # image.save(f"img_{self.idx}.png")
+        # self.idx += 1
         try:
-            # Ratio of grey pixels -> grey_pixels / hxw of the image             
+            # Ratio of grey pixels -> grey_pixels / hxw of the image
             ratio = grey_pixels / (img.shape[0] * img.shape[1])
-            return self.weights["track"] * math.tanh(100 * (ratio) ** 3)
+            return self.weights["track"] * math.tanh(50 * (ratio) ** 4)
         except ZeroDivisionError:
             return 0
+
 
 class Buffer:
     """
