@@ -4,7 +4,7 @@ This README documents how to get up and running with `d3rlpy` for running offlin
 
 ## Setting up the environment
 
-We will use Mamba for environment management.
+We will use Mamba for environment management. If you are using a machine that does not have a GPU, then move to **Non-GPU Environment** for the relevant instructions.
 
 ### Installing Mamba
 
@@ -52,7 +52,64 @@ The new environment can now be activated.
 mamba activate need4speed
 ```
 
+### Non-GPU Environment
+If you have a machine with no GPU, then the above steps will not work because it expects PyTorch to be compiled with CUDA support. Instead, we can use Pipenv to manage the virtual environment and install the relevant pacakges. First, make sure that Pipenv is installed:
+
+```bash
+pip install pipenv
+```
+Assuming you have cloned the repository and navigated into that directory as above, then simply run
+
+```bash
+pipenv install
+```
+
+This will automatically install the necessary pacakges and their dependencies. A few comments on Pipenv usage that differ from Mamba. You need to activate the environment by running the command `pipenv shell` when within the repository. Further, to run scripts, you need to prefix these commands with `pipenv run ...` for example
+
+```bash
+pipenv run python3 operate.py
+```
+
+Note also that depending on your linter your editor may complain about not being able to resolve particular package imports like **numpy** - don't worry, the scripts will still work properly if your environment is activated. There are ways to remove these errors by specifying the python/pip binary that your linter should use for that particular repository.
+
+### Altering the Penguin Pi code
+To date, our reward function in training has exploited the horizontal, vertical and angular displacement of the robot across time steps to assist in velocity and pose smoothing. However, this functionality will not work out of the box. It relies on the `get_pose` method defined in `utils/penguin_pi.py`:
+
+```python
+def get_pose(self):
+        resp = requests.get("{}/robot/get/pose".format(self.endpoint), timeout=1)
+        assert resp.status_code == 200
+        x, y, theta = list(
+            map(float, resp.text.split(","))
+        )  # read str,str,str into float,float,float
+        return x, y, theta
+```
+
+By default, this `{}/robot/get/pose` endpoint is not exposed by the Penguin Pi. To change this, you need to connect to the Pi's hotspot then SSH into the Pi itself:
+
+```bash
+ssh pi@<IP>
+```
+
+Where `<IP>` is the IP address of the Pi's local hotspot (what is shown on the LCD screen). The default password is `PenguinPi`. Open up the following file:
+
+```bash
+vi /usr/bin/penguin-webserver
+```
+Then add the following code somewhere in the file:
+
+```python
+@app.route('/robot/get/pose')
+def getpose():
+        global x, y, theta
+        reutrn "{},{},{}".format(x, y, theta)
+```
+
+You should now be able to collect pose information during operation.
+
 ## Usage
+
+### Demos
 
 With the environment activated, you are now in a position to train experiments. To test everything is working well, try solving the `cartpole` experiment using a DQN.
 
@@ -99,7 +156,18 @@ Once the experiment has run, you can plot the results (here, reward) using `d3rl
 d3rlpy plot <path to .csv file>
 ```
 
-### Deploying a trained model
+### Collect-Train-Deploy
+
+Use the `operate.py` script to collect expert trajectories. A few comments on this script:
+- By default, it will run in continuous mode, which means the following:
+  - If you stop the script, then restart it, the program will _append_ to the images folder and actions file rather than overwriting.
+  - It will not calculate the rewards at each time step. This will instead be done during training. This also means that it will not produce a live reward plot during operation.
+- To not have this be the behaviour, run the script with the argument `--one_shot=True`. This is commonly used to debug the reward function rather than to collect a dataset of trajectories for training. It will have a noticeable impact on the rate at which the Pi captures images - however, you could explore some simple multi-threading to have this not be the case.
+
+Use `train.py` to train a model.
+- By default, the script will expect to find all the data it needs in the `output/` directory.
+- If it doesn't find rewards calculated, it will do so prior to training.
+- There are also a few cleaning things it does, such as removing erroneously large actions from the CSV file and deleting the corresponding images.
 
 Once a model has been trained with `train.py`, it can be deployed to the Penguin Pi using `deploy.py`. To connect to the Penguin Pi:
 
@@ -107,3 +175,5 @@ Once a model has been trained with `train.py`, it can be deployed to the Penguin
 2. Connect to the Penguin Pi's local hotspot. The network name will be something like `penguinpi:xx:xx:xx` where `x` represents some hexadecimal value. The password is `egb439123`.
 3. Run `python3 deploy.py`.
 4. If you have connection issues, ensure that the IP address set in `deploy.py` parser arguments matches that displayed on the Pi's LCD screen, and the port is correctly set to `8080`. You can also test the connection by opening a browser and navigating to `http://192.168.50.1:8080` - it should present you with a control interface for the Penguin Pi.
+
+Note that by default this script will look in the `models/` directory and use the most recently created/added `.d3` file as the deployment model.
